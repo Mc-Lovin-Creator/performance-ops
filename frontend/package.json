@@ -1,0 +1,21 @@
+{
+  "name": "performance-lab-os-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serves the Performance Lab OS single-page app. The app itself is built from app/src into public/index.html by app/build.py.",
+  "dependencies": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "@craco/craco": "7.1.0"
+  },
+  "scripts": {
+    "prestart": "cd .. && python3 app/build.py",
+    "start": "craco start",
+    "prebuild": "cd .. && python3 app/build.py",
+    "build": "craco build"
+  },
+  "browserslist": { "production": [">0.2%", "not dead"], "development": ["last 1 chrome version", "last 1 safari version"] }
+}

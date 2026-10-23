@@ -1,0 +1,16 @@
+{
+  "name": "performance-lab-os",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 app/build.py",
+    "test:static": "node tests/static_checks.mjs",
+    "test:smoke": "node tests/smoke.mjs",
+    "test:backend": "cd backend && python -m pytest -q",
+    "test": "npm run build && npm run test:static && npm run test:smoke && npm run test:backend && npm run test:e2e",
+    "test:e2e": "node tests/sync_e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.0"
+  }
+}
