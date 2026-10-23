@@ -83,3 +83,4 @@ document.addEventListener('click', e => {
   else if (a === 'slow') L.set('speed', 0.5); else if (a === 'norm') L.set('speed', 1);
   else if (a === 'lab') { L.roles(null); go('anatomy'); }
 });
+window.__motion = { MOTIONS, roleMap };

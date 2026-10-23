@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE = join(ROOT, 'dist', 'performance-lab.html');
 const ROUTES = ['player1', 'calendar', 'return', 'loadlab', 'p1tx', 'p1rec', 'p1inj', 'p1test', 'p1rx', 'p1edu', 'p1kit', 'p1chat', 'command', 'athletes', 'athlete-km~load',
-  'athlete-sr~tests', 'treatment', 'records', 'classify', 'learn', 'ask', 'messages', 'recovery', 'agents', 'innovation', 'trust', 'build', 'audit', 'members', 'book', 'anatomy'];
+  'athlete-sr~tests', 'treatment', 'records', 'classify', 'learn', 'ask', 'messages', 'recovery', 'agents', 'innovation', 'trust', 'build', 'audit', 'members', 'book', 'anatomy', 'pilot'];
 
 const browser = await chromium.launch();
 let fail = 0;

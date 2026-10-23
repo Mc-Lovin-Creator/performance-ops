@@ -14,6 +14,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: python3 app/build.py
       - run: node tests/static_checks.mjs
+      - run: node tests/unit.mjs
       - run: node tests/smoke.mjs
       - run: cd backend && python -m pytest -q
       - run: node tests/sync_e2e.mjs

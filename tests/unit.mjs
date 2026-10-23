@@ -1,0 +1,20 @@
+// Unit tests for pure parsers: OpenCap motion files and wearable CSVs.
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const SRC = join(dirname(fileURLToPath(import.meta.url)), '..', 'app', 'src');
+const doc = { addEventListener() {} }, ISO = d => d.toISOString().slice(0, 10);
+const load = (f, names, extra = {}) => new Function(...Object.keys(extra), 'document', readFileSync(join(SRC, f), 'utf8') + `;return {${names}}`)(...Object.values(extra), doc);
+let fail = 0; const eq = (a, b, m) => { const ok = JSON.stringify(a) === JSON.stringify(b); console.log(ok ? 'ok  ' : 'FAIL', m, ok ? '' : `${JSON.stringify(a)} != ${JSON.stringify(b)}`); if (!ok) fail++; };
+const oc = load('opencap.js', 'ocParse,ocSample', { audit() {}, MOTIONS: [], esc: x => x });
+const r = oc.ocParse(oc.ocSample());
+eq(r.keys.length, 121, 'sample motion parsed');
+eq(r.peaks.find(p => p[0] === 'Right knee flexion')[1], 88, 'peak knee flexion read from file');
+eq(Math.round(r.keys[60].hipR + r.keys[60].t), 78, 'hip flexion is relative to the pelvis');
+let threw = false; try { oc.ocParse('just text'); } catch (e) { threw = true; } eq(threw, true, 'non-motion file refused');
+const SRCobj = {}; const w = load('wear.js', 'wearParse', { SRC: SRCobj, PM: q => q, store: { get: (k, d) => d }, ISO, perm: () => ({}), audit() {}, toast() {}, keepRender() {}, DAILY: {}, TODAY: new Date(), srcLink: () => '', esc: x => x });
+const oura = w.wearParse('date,Total Sleep Duration,Average HRV,Lowest Resting Heart Rate,Readiness Score\n2026-10-20,27000,62,48,81\n2026-10-21,25200,58,50,74\n');
+eq([oura.n, oura.src, oura.days['2026-10-20'].sleep, oura.days['2026-10-21'].hrv], [2, 'Oura', 7.5, 58], 'Oura CSV: seconds of sleep become hours');
+const apple = w.wearParse('Date;Heart Rate Variability (ms);Resting Heart Rate (count/min);Sleep Analysis [Asleep] (hr)\n2026-10-20;55;52;7.2\n');
+eq([apple.src, apple.days['2026-10-20'].rhr, apple.days['2026-10-20'].sleep], ['Apple Health', 52, 7.2], 'Apple Health CSV with semicolons');
+if (fail) process.exit(1); console.log('unit tests passed');

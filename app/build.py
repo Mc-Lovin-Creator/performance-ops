@@ -12,7 +12,7 @@ SRC = ROOT / "app" / "src"
 ASSETS = ROOT / "app" / "assets"
 # modules inserted, in order, where app.js marks /* ---------- search ---------- */
 ORDER = ["anatdb", "return", "hub", "p1hub", "team", "anatui", "edudata", "norms", "edu", "agents", "cinema", "p1load", "vault", "ops", "squad", "audit",
-         "members", "fun", "labs", "book", "chapters", "story", "fascia3d", "holo", "motion", "explainers", "focus", "consent", "sync"]
+         "members", "fun", "labs", "book", "chapters", "story", "fascia3d", "holo", "motion", "explainers", "focus", "consent", "opencap", "wear", "pilot", "sync"]
 MARK = "/* ---------- search ---------- */"
 
 

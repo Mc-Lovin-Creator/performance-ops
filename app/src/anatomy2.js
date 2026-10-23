@@ -706,6 +706,9 @@ Lab.undo = () => { if (!undoStack.length) return false; state.hidden = undoStack
 Lab.canUndo = () => undoStack.length > 0;
 Lab.hiddenCount = () => state.hidden.size;
 Lab.resetView = () => { userMoved = false; camAnim = null; const p0 = camera.position.clone(), t0 = controls.target.clone(); fitCamera(); const p1 = camera.position.clone(), t1 = controls.target.clone(); camera.position.copy(p0); controls.target.copy(t0); userMoved = true; camAnim = { t: 0, p0, t0, p1, t1 }; };
+/* render one exact frame (pose at a phase) and return it as an image: used for filming and exports */
+Lab.renderFrame = (phase, w, h) => { if (!loaded) return null; if (w && h && (canvasEl.width !== w || canvasEl.height !== h)) { renderer.setPixelRatio(1); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  if (phase != null) state.phase = phase; applyPose(state.phase); colourFrame(0.0001); explodeFrame(); controls.update(); draw(); return canvasEl.toDataURL('image/jpeg', 0.92); };
 Lab.snapshot = () => { draw(); const c = document.createElement('canvas'); c.width = canvasEl.width; c.height = canvasEl.height; const g = c.getContext('2d');
   g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#FAFAF8'; g.fillRect(0, 0, c.width, c.height); g.drawImage(canvasEl, 0, 0); return c.toDataURL('image/png'); };
 Lab.set = function (k, v) {

@@ -14,7 +14,7 @@ const all = files.map(f => [f, readFileSync(join(SRC, f), 'utf8')]);
 let fail = 0; const bad = m => { console.error('FAIL', m); fail++; };
 
 // 1. evidence keys
-const norms = readFileSync(join(SRC, 'norms.js'), 'utf8') + readFileSync(join(SRC, 'labs.js'), 'utf8');
+const norms = all.map(([, s]) => s).join('\n');
 const defined = new Set([...norms.matchAll(/^\s{2}([a-z0-9_]+): \{ cite:/gm)].map(m => m[1]).concat([...norms.matchAll(/SRC\.([a-z0-9_]+) = \{/g)].map(m => m[1])));
 const used = new Set();
 for (const [f, s] of all) {
