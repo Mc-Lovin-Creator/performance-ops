@@ -621,6 +621,10 @@ function explodeFrame() {
   if (!busy) EXP.active = false;
 }
 Lab.explode = v => explodeTo(Math.max(0, Math.min(1, +v || 0)), false);
+/* deterministic versions for filming: t from 0 (apart) to 1 (assembled) */
+Lab.explodeAt = v => { if (!EXP.ready) explodePrep(); EXP.active = false; for (const m of meshes) { const u = m.userData; if (!u.exDir) continue; u.ex = v; u.exTo = undefined; m.position.copy(u.exDir).multiplyScalar(u.exMag * v); } state.explode = v; };
+Lab.assembleAt = t => { if (!EXP.ready) explodePrep(); EXP.active = false; const order = { bone: 0, cart: 1, conn: 2, deep: 3, sup: 4, fascia: 5, art: 6, vein: 6, nerve: 6, organ: 4, ins: 7 }, T = t * (7 * 0.42 + 0.26 + 0.9);
+  for (const m of meshes) { const u = m.userData; if (!u.exDir) continue; const k = Math.min(1, Math.max(0, (T - (order[u.layer] || 0) * 0.42 - hashTint(+u.id.slice(1) + 11) * 0.26) / 0.9)); u.ex = 1.25 * (1 - (1 - Math.pow(1 - k, 3))); u.exTo = undefined; m.position.copy(u.exDir).multiplyScalar(u.exMag * u.ex); } };
 Lab.assemble = () => { if (!EXP.ready) explodePrep(); for (const m of meshes) { const u = m.userData; u.ex = 1.25; if (u.exDir) m.position.copy(u.exDir).multiplyScalar(u.exMag * u.ex); } explodeTo(0, true); };
 Lab.deconstruct = () => { if (!EXP.ready) explodePrep(); const now = performance.now(), order = { fascia: 0, art: 0, vein: 0, nerve: 0, ins: 0, sup: 1, organ: 2, deep: 2, conn: 3, cart: 4, bone: 5 };
   for (const m of meshes) { const u = m.userData; u.exFrom = u.ex || 0; u.exTo = 1; u.exT0 = now + (order[u.layer] || 0) * 420 + hashTint(+u.id.slice(1) + 5) * 260; u.exDur = 900; } state.explode = 1; EXP.active = true; };
