@@ -29,7 +29,7 @@ const TISSUE = {
   tendon:   { col: { cinematic: 0xEFE6D4, clinical: 0xF1EDE4, cadaver: 0xD8CBAA }, r: 0.26, cc: 0.7, ccr: 0.18, sh: 1.0, shc: 0xFFFFFF, mode: 1 },
   ligament: { col: { cinematic: 0xE6D8BC, clinical: 0xE9E1CF, cadaver: 0xCDBB95 }, r: 0.32, cc: 0.55, ccr: 0.22, sh: 0.8, shc: 0xFFF8EC, mode: 1 },
   fascia:   { col: { cinematic: 0xF4EEE2, clinical: 0xF4F1EA, cadaver: 0xDCCDAE }, r: 0.22, cc: 0.85, ccr: 0.15, sh: 0.9, shc: 0xFFFFFF, mode: 3, op: { cinematic: 0.42, clinical: 0.32, cadaver: 0.5 } },
-  cart:     { col: { cinematic: 0xE2E8E6, clinical: 0xD9E4E6, cadaver: 0xD8D3C0 }, r: 0.16, cc: 0.95, ccr: 0.08, sh: 0.3, shc: 0xFFFFFF, mode: -1 },
+  cart:     { col: { cinematic: 0xE6E3D8, clinical: 0xE2E2D8, cadaver: 0xD8D3C0 }, r: 0.3, cc: 0.4, ccr: 0.3, sh: 0.2, shc: 0xFFFFFF, mode: -1 },
   bone:     { col: { cinematic: 0xE9DCC0, clinical: 0xEEE5D0, cadaver: 0xD7C79F }, r: 0.55, cc: 0.12, ccr: 0.5, sh: 0, shc: 0xFFFFFF, mode: 2 },
   art:      { col: { cinematic: 0xC0161E, clinical: 0xC8232B, cadaver: 0x8A3A33 }, r: 0.24, cc: 0.85, ccr: 0.15, sh: 0.2, shc: 0xFFFFFF, mode: -1 },
   vein:     { col: { cinematic: 0x2A4BA8, clinical: 0x2F56B0, cadaver: 0x4A4A66 }, r: 0.26, cc: 0.85, ccr: 0.15, sh: 0.2, shc: 0xFFFFFF, mode: -1 },
@@ -569,7 +569,7 @@ Lab.storyCaption = () => STORY.caption;
 const LIGHTS = {};
 const STYLE_BG = { cinematic: '#05060a', hologram: '#02070d', cadaver: '#14110f', clinical: null };
 const STYLE_LIGHT = {
-  cinematic: { exp: 1.08, hemi: [0x5a6b80, 0x0a0806, 0.22], key: [0xfff1e0, 2.1, [1.4, 3.2, 1.6]], rim: [0xffe2c4, 1.25, [-2.6, 2.4, -2.4]], fill: [0x8fa6c8, 0.18, [-2, 0.4, 2]], rim2: [0x9cc4ff, 1.1, [2.6, 1.4, -2.2]] },
+  cinematic: { exp: 1.08, hemi: [0x5a6b80, 0x0a0806, 0.22], key: [0xfff1e0, 2.1, [1.4, 3.2, 1.6]], rim: [0xffe2c4, 1.25, [-2.6, 2.4, -2.4]], fill: [0x8fa6c8, 0.18, [-2, 0.4, 2]], rim2: [0xdfe8ff, 0.9, [2.6, 1.4, -2.2]] },
   clinical: { exp: 0.94, hemi: [0xfffaf2, 0x8a8278, 0.85], key: [0xffffff, 1.25, [1.2, 3.4, 2.2]], rim: [0xfff4ea, 0.55, [-2.4, 2.2, -2.6]], fill: [0xfff0e2, 0.45, [-2, 0.6, 2]], rim2: [0xbfd6ff, 0, [2.6, 1.6, -2.2]] },
   cadaver: { exp: 0.9, hemi: [0xe8e2d4, 0x302820, 0.55], key: [0xfff6e6, 1.5, [0.6, 3.6, 1.4]], rim: [0xffffff, 0.35, [-2.4, 2.2, -2.6]], fill: [0xf0e6d8, 0.3, [-2, 0.6, 2]], rim2: [0xffffff, 0, [2.6, 1.6, -2.2]] },
   hologram: { exp: 1.0, hemi: [0xffffff, 0x000000, 0.2], key: [0xffffff, 0.5, [1.2, 3.4, 2.2]], rim: [0xffffff, 0.2, [-2.4, 2.2, -2.6]], fill: [0xffffff, 0.2, [-2, 0.6, 2]], rim2: [0xffffff, 0, [2.6, 1.6, -2.2]] }
@@ -829,7 +829,7 @@ Lab.autoLabels = function (max = 12) {
   }
   return out;
 };
-Lab.debugBlue = () => meshes.filter(m => m.visible && (m.material.color.b > m.material.color.r + 0.05 || m.material.emissiveIntensity > 0.01)).slice(0, 40).map(m => [m.userData.s.name, m.userData.layer, m.material.color.getHexString(), m.material.emissive.getHexString(), m.material.emissiveIntensity]);
+Lab._debugBlue = () => meshes.filter(m => m.visible && (m.material.color.b > m.material.color.r + 0.05 || m.material.emissiveIntensity > 0.01)).slice(0, 40).map(m => [m.userData.s.name, m.userData.layer, m.material.color.getHexString(), m.material.emissive.getHexString(), m.material.emissiveIntensity]);
 Lab.debugTint = (layer, hex) => { for (const m of meshes) if (m.userData.layer === layer) { m.material.color.setHex(hex); m.material.userData.base = m.material.color.clone(); } };
 Lab.debugHide = layer => { for (const m of meshes) if (m.userData.layer === layer) m.visible = false; Lab._dbgHide = layer; };
 Lab.visCount = () => { const c = {}; for (const m of meshes) if (m.visible) c[m.userData.layer] = (c[m.userData.layer] || 0) + 1; return c; };
