@@ -1,0 +1,14 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+backend/.env
+frontend/.env
+frontend/build/
+dist/
+frontend/public/index.html
+frontend/public/*.txt
+# staff photos and any exports stay off GitHub
+app/assets/img/
+*.csv
+*.xlsx
