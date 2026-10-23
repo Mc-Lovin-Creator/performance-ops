@@ -203,9 +203,9 @@ function p1Forecast(T, r) {
   const gx = v => ((Math.max(rMin, Math.min(rMax, v)) - rMin) / (rMax - rMin) * 100).toFixed(1);
   const mk = (v, cls, lab) => `<i class="fx-m ${cls}" style="left:${gx(v)}%"><b>${v.toFixed(2)}</b><em>${lab}</em></i>`;
   const zNow = fcZone(now), zS = fcZone(endS), zP = fcZone(endP);
-  return `<section class="fx" aria-label="Injury-risk forecast">
+  return `<section class="fx" aria-label="Load monitor">
     <div class="hx-phosphor" data-tone="${firstS >= 0 ? 'risk' : 'forecast'}" aria-hidden="true"><canvas></canvas></div><div class="fx-veil" aria-hidden="true"></div><div class="fx-grid" aria-hidden="true"></div>
-    <header class="fx-h"><div><span class="fx-k">Threshold engine · injury-risk forecast · checked against his previous load</span><h2 class="fx-title">Where his load is heading</h2></div>
+    <header class="fx-h"><div><span class="fx-k">Load monitor · monitoring aid, not a prediction · checked against his previous load</span><h2 class="fx-title">Where his load is heading</h2></div>
       <div class="fx-ctl"><div class="fx-seg" role="group" aria-label="Horizon">${[7, 9, 14, 21].map(h => `<button data-fx="h|${h}" aria-pressed="${H === h}">${h}d</button>`).join('')}</div></div></header>
     <div class="fx-read">
       <div class="fx-r" style="--z:${zNow[4]}"><span>Now</span><b class="fx-num">${now.toFixed(2)}</b><em>${zNow[1]}</em></div>
@@ -227,7 +227,7 @@ function p1Forecast(T, r) {
       <input id="fx-f" type="range" min="0.5" max="2" step="0.05" value="${f.toFixed(2)}" data-fx="f" style="--p:${((f - 0.5) / 1.5 * 100).toFixed(0)}%">
       <button data-fx="auto" aria-pressed="${FCST.f == null}">Observed this week ×${auto.toFixed(2)}</button></div>
     <p class="fx-take">${esc(take)}${over ? ` <b>Heads-up:</b> this week is ${Math.round(pl - pr)} min past what the programme predicted; make the next session an easy one.` : ''}</p>
-    <div class="fx-legend"><span><i class="lp"></i>Ratio so far</span><span><i class="lg"></i>If he follows the plan</span><span><i class="ls"></i>If he keeps ×${f.toFixed(2)}</span><span><i class="lb"></i>Minutes played</span><span><i class="lgh"></i>Minutes ahead at ×${f.toFixed(2)}</span><span><i class="lh"></i>High-risk day</span></div>
+    <div class="fx-legend"><span><i class="lp"></i>Ratio so far</span><span><i class="lg"></i>If he follows the plan</span><span><i class="ls"></i>If he keeps ×${f.toFixed(2)}</span><span><i class="lb"></i>Minutes played</span><span><i class="lgh"></i>Minutes ahead at ×${f.toFixed(2)}</span><span><i class="lh"></i>Raised-load day</span></div>
     <details class="fx-how"><summary>How this works, and its limits</summary><p>Rules ported from your Threshold app: same zones (0.8, 1.1, 1.25), the same two scenarios, overshoot auto-detected as played ÷ planned over the last 7 days (capped at ×2), with your override. The ratio uses the app's 7-day and 28-day weighted averages so it matches every other number in the app. It marks a window of raised risk, not a prediction that he will be injured: load models cannot predict individual injuries (<a href="https://pubmed.ncbi.nlm.nih.gov/?term=Bahr+2016+screening+tests+predict+injury" target="_blank" rel="noopener">Bahr 2016</a>; <a href="${SRC.impel.url}" target="_blank" rel="noopener">Impellizzeri 2020</a>), though rapid spikes are linked with more injuries (<a href="https://pubmed.ncbi.nlm.nih.gov/?term=Gabbett+2016+training-injury+prevention+paradox" target="_blank" rel="noopener">Gabbett 2016</a>). Symptoms and your judgement come first.</p></details>
   </section>`;
 }

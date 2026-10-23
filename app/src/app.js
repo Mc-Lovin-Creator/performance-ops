@@ -241,22 +241,23 @@ const NAV = [
   ['§', 'Squad'],
   ['command', 'Squad overview', '<path d="M3 12 12 4l9 8"/><path d="M5 10v10h14V10"/>'],
   ['athletes', 'Athletes and coaches', '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>'],
-  ['members', 'Members by population', '<circle cx="7" cy="8" r="3"/><circle cx="17" cy="8" r="3"/><path d="M2 20a5 5 0 0 1 10 0M12 20a5 5 0 0 1 10 0"/>'],
   ['book', 'Book a session', '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>'],
   ['treatment', 'Squad treatment', '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>'],
   ['records', 'Patient records', '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>'],
   ['classify', 'Classify and prescribe', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
   ['anatomy', 'Anatomy lab', '<circle cx="12" cy="4.5" r="2.5"/><path d="M12 7v7M12 14l-4 7M12 14l4 7M5 10l7-1 7 1"/>'],
   ['learn', 'Education hub', '<path d="M2 7l10-4 10 4-10 4z"/><path d="M6 9v6c3 2 9 2 12 0V9"/>'],
+  ['members', 'Members by population', '<circle cx="7" cy="8" r="3"/><circle cx="17" cy="8" r="3"/><path d="M2 20a5 5 0 0 1 10 0M12 20a5 5 0 0 1 10 0"/>'],
   ['ask', 'Ask', '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/><path d="M9 9.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4M11 15h.01"/>'],
-  ['recovery', 'Recovery and track', '<path d="M12 21c-4-3-7-6-7-10a7 7 0 0 1 14 0c0 4-3 7-7 10z"/><path d="M9 11h6"/>'],
   ['messages', 'Messages', '<path d="M4 5h16v11H8l-4 4z"/>'],
   ['§', 'Admin'],
   ['audit', 'Evidence audit', '<path d="M9 12l2 2 4-4"/><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>'],
+  ['trust', 'Trust and access', '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>'],
+  ['§', 'Labs'],
+  ['recovery', 'Recovery and track', '<path d="M12 21c-4-3-7-6-7-10a7 7 0 0 1 14 0c0 4-3 7-7 10z"/><path d="M9 11h6"/>'],
   ['build', 'Build status', '<path d="M4 6h16M4 12h10M4 18h7"/><path d="m15 17 2 2 4-4"/>'],
   ['agents', 'Agents', '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M3 13v2M21 13v2"/>'],
-  ['innovation', 'Innovation', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>'],
-  ['trust', 'Trust and access', '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>']
+  ['innovation', 'Innovation', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>']
 ];
 const P1_ROUTES = ['player1', 'calendar', 'return', 'loadlab', 'p1tx', 'p1rec', 'p1inj', 'p1test', 'p1rx', 'p1edu', 'p1anat', 'p1kit', 'p1chat'];
 function allowedRoutes() {
@@ -276,7 +277,8 @@ function renderNav() {
   let src = [];
   if (me().role === 'athlete') src = ATH_NAV.filter(allowed);
   else { let grp = null; for (const n of NAV) { if (n[0] === '§') { grp = [n]; src.push(grp); } else if (allowed(n)) grp.push(n); } src = src.filter(g => g.length > 1).flat(); }
-  $('#nav').innerHTML = src.map(([k, l, ic]) => k === '§' ? `<span class="nav-h">${l === 'Player 1 · private' ? lockIcon : ''}${l}</span>` : `<a href="#${k}" data-route="${k}" class="${P1_ROUTES.includes(k) && k !== 'player1' ? 'nav-sub' : ''}" ${(NAVP[S.route] || S.route.split('-')[0]) === k || (k === 'athletes' && S.route.startsWith('athlete-')) ? 'aria-current="page"' : ''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>${l}${k === 'messages' ? `<span class="count">${unread}</span>` : k === 'treatment' ? `<span class="count">${UPDATES.length}</span>` : ''}</a>`).join('');
+  let inLabs = false; const labsOpen = store.get('labsOpen', false) || NAV.slice(NAV.findIndex(n => n[1] === 'Labs')).some(n => n[0] === (S.route || '').split('-')[0]);
+  $('#nav').innerHTML = src.map(([k, l, ic]) => { if (k === '§') inLabs = l === 'Labs'; return [k, l, ic]; }).map(([k, l, ic], i, arr) => k === '§' ? (l === 'Labs' ? `<button class="nav-h nav-labs" data-labs aria-expanded="${labsOpen}">Labs <em>experimental</em><i>${labsOpen ? '−' : '+'}</i></button>` : `<span class="nav-h">${l === 'Player 1 · private' ? lockIcon : ''}${l}</span>`) : (arr.slice(0, i).reverse().find(x => x[0] === '§') || [])[1] === 'Labs' && !labsOpen ? '' : `<a href="#${k}" data-route="${k}" class="${P1_ROUTES.includes(k) && k !== 'player1' ? 'nav-sub' : ''}" ${(NAVP[S.route] || S.route.split('-')[0]) === k || (k === 'athletes' && S.route.startsWith('athlete-')) ? 'aria-current="page"' : ''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>${l}${k === 'messages' ? `<span class="count">${unread}</span>` : k === 'treatment' ? `<span class="count">${UPDATES.length}</span>` : ''}</a>`).join('');
   $('#foot-who').textContent = 'Viewing as ' + me().full;
 }
 
@@ -1002,7 +1004,7 @@ function renderNow() {
   const page = $('#page');
   page.innerHTML = (S.priv ? `<div class="banner">${lockIcon} Private mode is on. ${ATH.filter(a => a.private).length} private records and ${CHANNELS.filter(c => c.private).length} private threads are limited to their access lists.</div>` : '') + (
     r === 'command' ? pageCommand() : r === 'player1' ? pagePlayer1() : r === 'return' ? pageReturn() + (perm().clinical ? transitionCard() : '') : r === 'loadlab' ? pageLoadLab() : r === 'calendar' ? pageCalendar() + leaveRequests() : r === 'assess' ? pageAssess() : r === 'p1tx' ? pageP1Tx() : r === 'p1inj' ? pageP1Inj() : r === 'p1test' ? pageP1Test() : r === 'p1edu' ? pageP1Edu() : r === 'p1chat' ? pageP1Chat() : r === 'myfoot' ? pageMyFoot() : r === 'learn' && me().role === 'athlete' ? pageLearnAthlete() : r === 'athletes' ? pageTeam() : r.startsWith('athlete-') ? athleteHub(r.slice(8)) : r === 'treatment' ? pageTreatment() : r === 'anatomy' || r === 'p1anat' ? pageAnatomy() :
-      r === 'book' ? pageBook() : r === 'classify' ? pageClassify() : r === 'learn' ? pageLearn() : r === 'messages' ? pageMessages() : r === 'innovation' ? innovationInbox() + pageInnovation() + equipmentPanel() : r === 'agents' ? pageAgents() : r === 'p1rx' ? pageP1Rx() : r === 'p1kit' ? pageP1Kit() : r === 'recovery' ? pageRecovery() : r === 'build' ? pageBuild() : r === 'audit' ? pageAudit() : r === 'members' ? pageMembers() : r === 'records' ? pageRecords('all') : r === 'p1rec' ? pageRecords('p1') : r === 'ask' ? pageAsk() : pageTrust());
+      r === 'book' ? pageBook() : r === 'classify' ? pageClassify() : r === 'learn' ? pageLearn() : r === 'messages' ? pageMessages() : r === 'innovation' ? innovationInbox() + pageInnovation() + equipmentPanel() : r === 'agents' ? pageAgents() : r === 'p1rx' ? pageP1Rx() : r === 'p1kit' ? pageP1Kit() : r === 'recovery' ? pageRecovery() : r === 'build' ? pageBuild() : r === 'audit' ? pageAudit() : r === 'members' ? pageMembers() : r === 'records' ? pageRecords('all') : r === 'p1rec' ? pageRecords('p1') + consentCard(P1()) : r === 'ask' ? pageAsk() : pageTrust());
   renderNav(); syncMode(); document.body.dataset.role = me().role;
   if (r === 'anatomy' || r === 'p1anat') mountAnatomy();
   cineAfterRender(); chapterSlate(r); holoMount(); if (window.AnatomyLab && AnatomyLab.roles && !document.getElementById('mo-host')) AnatomyLab.roles(null);

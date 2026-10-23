@@ -2,7 +2,7 @@
 /* confetti: a light canvas burst in the app's colours; respects reduced motion */
 function celebrate(x, y, power) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  power = power || 1; const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c);
+  power = power || 1; const fxm = window.FXMODE ? FXMODE() : 'balanced'; if (fxm === 'calm' || (fxm === 'balanced' && power < 1.2)) return; const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c);
   const g = c.getContext('2d'), cols = ['#34d399', '#38bdf8', '#a78bfa', '#f59e0b', '#f472b6', '#facc15', '#fb7185'], P = [];
   x = x == null ? innerWidth / 2 : x; y = y == null ? innerHeight / 3 : y;
   for (let i = 0; i < 70 * power; i++) { const a = Math.random() * Math.PI * 2, s = (4 + Math.random() * 9) * (0.7 + power * 0.3); P.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 6, w: 6 + Math.random() * 6, h: 3 + Math.random() * 5, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: cols[i % cols.length], life: 1 }); }

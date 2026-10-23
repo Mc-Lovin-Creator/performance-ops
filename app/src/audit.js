@@ -5,7 +5,7 @@ const AUDIT = [
     ['Return plan: 8 weekly minute caps, one variable at a time', 'Graded return; court minutes and high-risk minutes never rise in the same week', 'practice', ['gabbett', 'bourdon'], 'Caps are the team\'s plan; the principle of gradual, single-variable progression is supported.'],
     ['Load = court minutes only', 'Session-RPE × minutes is the validated internal load; minutes alone are external load', 'practice', ['halson', 'bourdon'], 'Time-only is your current decision. RPE is still recorded so session-RPE load can be switched on.'],
     ['Threshold guard: acute:chronic ratio 1.10 and 1.25', 'Monitoring aid only', 'ok', ['impel', 'gabbett'], 'Shown with the caveat; never used alone to clear or stop him.'],
-    ['Risk forecast (Threshold engine)', 'Window of raised risk, not a prediction', 'ok', ['impel', 'gabbett'], 'Labelled as such on the panel.'],
+    ['Load monitor (Threshold engine)', 'Window of raised load, not an injury prediction; not a medical device', 'ok', ['impel', 'gabbett'], 'Labelled as such on the panel.'],
     ['Testing standards and population levels', 'McKay 2022 tiers; FRIEND, Dodds, Bohannon; pro padel cohorts', 'fixed', ['mckay', 'friend', 'dodds', 'pradas'], 'Invented elite bands removed in v30; age 40 to 49 added in v31.'],
     ['Prescription, elite', 'ACSM 2026 resistance stand; taper meta-analysis; padel physiology', 'fixed', ['currier', 'bosquet', 'mellado'], 'Updated from the retired 2009 ACSM stand to the 2026 stand.'],
     ['Pre-participation screening', 'ACSM 2015 algorithm', 'fixed', ['riebe'], 'Retired risk-factor count replaced in v30.'],

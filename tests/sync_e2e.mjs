@@ -28,14 +28,15 @@ try {
   await p.locator('.cov-step input, .cov-step button').first().click({ trial: true }).catch(() => {});
   // the app saves via store.set; call a harmless setter path: toggle theme (user key) and write daily through store
   await p.evaluate(() => document.getElementById('theme') && document.getElementById('theme').click());
-  await p.waitForTimeout(1500);
-  const st = JSON.parse(readFileSync(join(ROOT, 'dist', '_e2e', 'server_state.json'), 'utf8'));
-  check(Object.keys(st).some(k => k.startsWith('user:') && k.endsWith('|theme')), 'user preference synced per user');
+  let synced = false; for (let i = 0; i < 20 && !synced; i++) { await p.waitForTimeout(500); const st = JSON.parse(readFileSync(join(ROOT, 'dist', '_e2e', 'server_state.json'), 'utf8')); synced = Object.keys(st).some(k => k.startsWith('user:') && k.endsWith('|theme')); }
+  check(synced, 'user preference synced per user');
   check(errs.length === 0, 'no page errors (' + errs.join(' | ').slice(0, 200) + ')');
   // direct API checks with the browser's token
   const tok = await p.evaluate(() => JSON.parse(sessionStorage.getItem('plos.token')));
   const put = await fetch('http://localhost:8011/api/state/daily', { method: 'PUT', headers: { authorization: 'Bearer ' + tok, 'content-type': 'application/json' }, body: JSON.stringify({ value: { x: 1 } }) });
   check(put.ok, 'lead can save Player 1 data');
+  const rec = await fetch('http://localhost:8011/api/state/daily/records', { method: 'PATCH', headers: { authorization: 'Bearer ' + tok, 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'map', changes: { y: 2 }, base: {} }) });
+  const rj = await rec.json(); check(rec.ok && rj.value.x === 1 && rj.value.y === 2, 'record-level save merges with existing entries');
   await new Promise(r => setTimeout(r, 700));
   const st2 = JSON.parse(readFileSync(join(ROOT, 'dist', '_e2e', 'server_state.json'), 'utf8'));
   check(JSON.stringify(st2['shared|daily']).includes('sealed') && !JSON.stringify(st2['shared|daily']).includes('"value"'), 'Player 1 data stored encrypted');

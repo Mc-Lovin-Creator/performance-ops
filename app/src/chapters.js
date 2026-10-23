@@ -6,7 +6,8 @@ const CHAPTERS = {
 };
 function chapterSlate(r) {
   const c = CHAPTERS[r]; if (!c || window.__noSlate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const k = 'plos.ch.' + r; try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, 1); } catch (x) { }
+  const fxm = window.FXMODE ? FXMODE() : 'balanced'; if (fxm === 'calm') return;
+  const k = 'plos.ch.' + r, box = fxm === 'cinematic' ? sessionStorage : localStorage; try { if (box.getItem(k)) return; box.setItem(k, 1); } catch (x) { }
   const el = document.createElement('div'); el.className = 'slate'; el.setAttribute('aria-hidden', 'true');
   el.innerHTML = `<div class="slate-in"><span class="slate-n">${c[0] === 'Prologue' ? 'Prologue' : 'Chapter ' + c[0]}</span><b class="slate-t">${c[1]}</b><span class="slate-r"></span></div>`;
   document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('on'));

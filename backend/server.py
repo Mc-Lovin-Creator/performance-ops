@@ -25,6 +25,7 @@ from core import bookings as bk
 from core.policy import ENCRYPTED_SCOPES, KEYS, ROLES, Denied, User, can_read, can_write, readable_keys, scope_of, storage_scope_id
 from core.security import Keys, hash_password, verify_password
 from core.store import Conflict, MemoryStore, Store
+from core import totp
 
 log = logging.getLogger("plos")
 MAX_VALUE_BYTES = 2_000_000
@@ -45,7 +46,9 @@ def err(status: int, msg: str, **extra) -> JSONResponse:
 
 
 def public_user(u: dict) -> dict:
-    return {k: u.get(k) for k in ("id", "email", "role", "person", "p1", "active")}
+    d = {k: u.get(k) for k in ("id", "email", "role", "person", "p1", "active")}
+    d["totp"] = bool(u.get("totp_on"))
+    return d
 
 
 class SecurityHeaders:
@@ -66,7 +69,7 @@ class SecurityHeaders:
         await self.app(scope, receive, send2)
 
 
-def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None) -> Starlette:
+def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, require_2fa_p1: bool = False) -> Starlette:
     attempts: dict[str, deque] = defaultdict(deque)
 
     async def current_user(req: Request) -> User | None:
@@ -79,7 +82,7 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None) 
         u = await store.user_by_id(uid)
         if not u or not u.get("active", True):
             return None
-        return User(id=u["id"], email=u["email"], role=u["role"], person=u.get("person", ""), p1=bool(u.get("p1")))
+        return User(id=u["id"], email=u["email"], role=u["role"], person=u.get("person", ""), p1=bool(u.get("p1")), totp=bool(u.get("totp_on")))
 
     async def audit(user: User | None, action: str, target: str = "", detail: str = "", req: Request | None = None):
         await store.audit({"who": user.email if user else "anonymous", "role": user.role if user else "", "action": action, "target": target, "detail": detail,
@@ -113,9 +116,18 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None) 
         if not u or not u.get("active", True) or not verify_password(password, u.get("password_hash", "")):
             await audit(None, "login failed", email, req=req)
             return err(401, "wrong email or password")
+        if u.get("totp_on"):
+            code = str(body.get("code") or "")
+            if not code:
+                return err(401, "enter the 6-digit code from your authenticator app", need_code=True)
+            if not totp.verify(keys.open(u["totp_secret"]), code):
+                await audit(None, "login failed (code)", email, req=req)
+                return err(401, "wrong code", need_code=True)
         bucket.clear()
         await audit(User(u["id"], u["email"], u["role"], u.get("person", ""), bool(u.get("p1"))), "login", req=req)
-        return JSONResponse({"token": keys.issue(u["id"]), "user": public_user(u)})
+        pu = public_user(u)
+        pu["needs_2fa"] = bool(require_2fa_p1 and u.get("p1") and not u.get("totp_on"))
+        return JSONResponse({"token": keys.issue(u["id"]), "user": pu})
 
     @needs_user
     async def me(req, user: User):
@@ -126,12 +138,14 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None) 
         if not doc:
             return None
         value = keys.open(doc["sealed"]) if "sealed" in doc else doc.get("value")
-        return {"value": value, "version": doc["version"], "updated_by": doc.get("updated_by"), "updated_at": doc.get("updated_at")}
+        return {"value": value, "version": doc["version"], "rv": doc.get("rv") or {}, "updated_by": doc.get("updated_by"), "updated_at": doc.get("updated_at")}
 
     @needs_user
     async def state_all(req, user: User):
         out = {}
         for k in readable_keys(user):
+            if require_2fa_p1 and scope_of(k) == "p1" and not user.totp:
+                continue
             d = await _read(user, k)
             if d:
                 out[k] = d
@@ -145,6 +159,8 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None) 
             scope = scope_of(key)
         except Denied as e:
             return err(404, str(e))
+        if scope == "p1" and require_2fa_p1 and not user.totp:
+            return err(403, "turn on two-step sign-in to open Player 1 data", reason="2fa_required")
         if req.method == "GET":
             if not can_read(user, key):
                 await audit(user, "denied read", key, req=req)
@@ -181,6 +197,96 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None) 
             return err(409, "changed by someone else", reason="version", current=cur)
         await audit(user, "write", key, detail=f"v{new['version']}, {len(raw)} bytes", req=req)
         return JSONResponse({"version": new["version"]})
+
+    def _as_records(value):
+        """A map {id: item} or a list of items with ids becomes (kind, records, order)."""
+        if isinstance(value, dict):
+            return "map", dict(value), list(value.keys())
+        if isinstance(value, list) and all(isinstance(x, dict) and "id" in x for x in value):
+            return "list", {str(x["id"]): x for x in value}, [str(x["id"]) for x in value]
+        return None, None, None
+
+    @needs_user
+    async def state_records(req, user: User):
+        """Record-level merge: only the entries the client changed are applied, so two clinicians
+        editing different days or notes never overwrite each other."""
+        key = req.path_params["key"]
+        try:
+            scope = scope_of(key)
+        except Denied as e:
+            return err(404, str(e))
+        if scope == "p1" and require_2fa_p1 and not user.totp:
+            return err(403, "turn on two-step sign-in to open Player 1 data", reason="2fa_required")
+        if not can_write(user, key):
+            await audit(user, "denied write", key, req=req)
+            return err(403, "not permitted")
+        raw = await req.body()
+        if len(raw) > MAX_VALUE_BYTES:
+            return err(413, "value too large")
+        try:
+            body = json.loads(raw)
+            changes, base, kind_hint = dict(body["changes"]), dict(body.get("base") or {}), body.get("kind")
+        except Exception:
+            return err(400, "body must be {changes, base, kind}")
+        sid = storage_scope_id(user, key)
+        for _ in range(5):
+            doc = await store.get_state(sid, key)
+            cur = (keys.open(doc["sealed"]) if "sealed" in doc else doc.get("value")) if doc else ({} if kind_hint == "map" else [])
+            kind, recs, order = _as_records(cur if cur is not None else ({} if kind_hint == "map" else []))
+            if kind is None:
+                return err(409, "this key cannot be merged by record", reason="shape")
+            rv = dict((doc or {}).get("rv") or {})
+            conflicts = {}
+            for rid, val in changes.items():
+                if int(base.get(rid, 0)) != int(rv.get(rid, 0)) and recs.get(rid) != val:
+                    conflicts[rid] = recs.get(rid)
+                    continue
+                if val is None:
+                    recs.pop(rid, None)
+                    order = [o for o in order if o != rid]
+                else:
+                    if rid not in recs:
+                        order.append(rid)
+                    recs[rid] = val
+                rv[rid] = int(rv.get(rid, 0)) + 1
+            merged = {k: recs[k] for k in order if k in recs} if kind == "map" else [recs[k] for k in order if k in recs]
+            if key == "bookings":
+                try:
+                    bk.validate(merged)
+                except bk.BookingClash as e:
+                    return err(409, str(e), reason="clash")
+                except ValueError as e:
+                    return err(400, str(e))
+            new_doc = {"updated_by": user.email, "rv": rv}
+            new_doc.update({"sealed": keys.seal(merged)} if scope in ENCRYPTED_SCOPES else {"value": merged})
+            try:
+                new = await store.put_state(sid, key, new_doc, doc["version"] if doc else 0)
+            except Conflict:
+                continue
+            await audit(user, "write records", key, f"v{new['version']}, {len(changes) - len(conflicts)} changed, {len(conflicts)} conflicts", req=req)
+            return JSONResponse({"version": new["version"], "rv": rv, "conflicts": conflicts, "value": merged})
+        return err(503, "busy, try again")
+
+    @needs_user
+    async def twofa_setup(req, user: User):
+        secret = totp.new_secret()
+        await store.update_user(user.id, {"totp_pending": keys.seal(secret)})
+        await audit(user, "2fa setup started", req=req)
+        return JSONResponse({"secret": secret, "uri": totp.uri(secret, user.email)})
+
+    @needs_user
+    async def twofa_enable(req, user: User):
+        u = await store.user_by_id(user.id)
+        try:
+            code = str((await req.json())["code"])
+            secret = keys.open(u["totp_pending"])
+        except Exception:
+            return err(400, "start setup first")
+        if not totp.verify(secret, code):
+            return err(400, "that code did not match; check the time on your phone")
+        await store.update_user(user.id, {"totp_secret": keys.seal(secret), "totp_on": True, "totp_pending": None})
+        await audit(user, "2fa enabled", req=req)
+        return JSONResponse({"ok": True})
 
     def lead_only(fn):
         async def wrapped(req, user: User):
@@ -235,13 +341,16 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None) 
         Route("/api/health", health),
         Route("/api/auth/login", login, methods=["POST"]),
         Route("/api/auth/me", me),
+        Route("/api/auth/2fa/setup", twofa_setup, methods=["POST"]),
+        Route("/api/auth/2fa/enable", twofa_enable, methods=["POST"]),
         Route("/api/state", state_all),
         Route("/api/state/{key}", state_one, methods=["GET", "PUT"]),
+        Route("/api/state/{key}/records", state_records, methods=["PATCH"]),
         Route("/api/users", users, methods=["GET", "POST"]),
         Route("/api/users/{uid}", user_one, methods=["PATCH"]),
         Route("/api/audit", audit_log),
     ]
-    mw = [Middleware(CORSMiddleware, allow_origins=cors_origins or [], allow_methods=["GET", "POST", "PUT", "PATCH"], allow_headers=["authorization", "content-type"])]
+    mw = [Middleware(CORSMiddleware, allow_origins=cors_origins or [], allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["authorization", "content-type"])]
     mw.append(Middleware(SecurityHeaders))
     return Starlette(routes=routes, middleware=mw)
 
@@ -254,11 +363,11 @@ def build_from_env() -> Starlette:
         from motor.motor_asyncio import AsyncIOMotorClient
         from core.store import MongoStore
         store = MongoStore(AsyncIOMotorClient(os.environ["MONGO_URL"])[os.environ.get("DB_NAME", "performance_lab")])
-        app = create_app(store, keys, origins)
+        app = create_app(store, keys, origins, os.environ.get("REQUIRE_2FA_P1", "1") == "1")
         app.add_event_handler("startup", store.init)
         return app
     log.warning("MONGO_URL not set: using in-memory store (data is lost on restart)")
-    return create_app(MemoryStore(), keys, origins)
+    return create_app(MemoryStore(), keys, origins, os.environ.get("REQUIRE_2FA_P1", "1") == "1")
 
 
 app = build_from_env() if os.environ.get("PLOS_NO_AUTOAPP") != "1" else None

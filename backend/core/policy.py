@@ -20,12 +20,12 @@ STAFF_ROLES = {"lead", "physio", "physician", "coach", "manager"}
 KEYS: dict[str, str] = {
     # per-user preferences and view state
     "theme": "user", "popf": "user", "motion": "user", "rpmode": "user", "lab": "user",
-    "me": "user", "priv": "user", "lastStaff": "user", "nprof": "user",
+    "me": "user", "priv": "user", "lastStaff": "user", "nprof": "user", "fx": "user", "labsOpen": "user",
     # team
     "bookings": "team", "events": "team", "group": "team", "ideas": "team", "msgs": "team",
     "mtier": "team", "rstation": "team", "sqcap": "team", "sqmin": "team", "tracklog": "team", "trials": "team",
     # clinical (squad)
-    "updates": "clinic", "assess": "clinic", "cl": "clinic",
+    "updates": "clinic", "assess": "clinic", "cl": "clinic", "consent": "clinic",
     # Player 1 clinical
     "daily": "p1", "p1inj": "p1", "p1sess": "p1", "p1test": "p1", "p1share": "p1",
     "p1shown": "p1", "p1vis": "p1", "rdy": "p1", "normv": "p1",
@@ -43,6 +43,7 @@ class User:
     role: str
     person: str
     p1: bool = False
+    totp: bool = False
 
 
 class Denied(Exception):

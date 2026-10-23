@@ -37,7 +37,7 @@ function sqTabs(a, k) {
 function athleteHub(arg) {
   const [id, tab] = arg.split('~'), a = ATH.find(x => x.id === id);
   if (id === 'p1') { location.hash = tab === 'load' ? 'loadlab' : tab === 'tests' ? 'p1rx' : 'player1'; return ''; }
-  if (!a || !seesAthlete(a) || !tab) return pageAthlete(id).replace('<section class="hero">', a && seesAthlete(a) ? sqTabs(a, '') + '<section class="hero">' : '<section class="hero">');
+  if (!a || !seesAthlete(a) || !tab) return pageAthlete(id).replace('<section class="hero">', a && seesAthlete(a) ? sqTabs(a, '') + '<section class="hero">' : '<section class="hero">') + (a && seesAthlete(a) ? consentCard(a) : '');
   const S = sqSeries(a), pop = sqPop(a), head = `<a class="btn sm" href="#athletes" style="align-self:flex-start">Back to athletes</a><div class="sec-head"><div><span class="eyebrow">${esc(a.pos)} · ${esc(TIERS[a.tier])} · McKay tier ${a.tier}</span><h1 style="font-size:34px;letter-spacing:-.6px">${esc(a.name)}</h1></div></div>${sqTabs(a, tab)}`;
   if (tab === 'load') {
     const can = perm().clinical || me().role === 'coach';

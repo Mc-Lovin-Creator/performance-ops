@@ -158,5 +158,59 @@ class Api(unittest.TestCase):
         self.assertEqual(self.c.get("/api/audit", headers=login(self.c, "ops@lab.test")).status_code, 200)
 
 
+class Records(unittest.TestCase):
+    def setUp(self):
+        self.c, self.store, self.keys = setup_app()
+
+    def test_two_clinicians_different_days_both_kept(self):
+        jp, ol = login(self.c, "jp@lab.test"), login(self.c, "olivia@lab.test")
+        r1 = self.c.patch("/api/state/daily/records", headers=jp, json={"kind": "map", "changes": {"2026-10-22": {"pain": 2}}, "base": {}})
+        self.assertEqual(r1.status_code, 200, r1.text)
+        r2 = self.c.patch("/api/state/daily/records", headers=ol, json={"kind": "map", "changes": {"2026-10-23": {"pain": 1}}, "base": {}})
+        self.assertEqual(set(r2.json()["value"]), {"2026-10-22", "2026-10-23"})
+        self.assertIn("sealed", self.store.state[("shared", "daily")])
+
+    def test_same_record_conflict_reported(self):
+        jp, ol = login(self.c, "jp@lab.test"), login(self.c, "olivia@lab.test")
+        self.c.patch("/api/state/daily/records", headers=jp, json={"kind": "map", "changes": {"d1": {"pain": 2}}, "base": {}})
+        r = self.c.patch("/api/state/daily/records", headers=ol, json={"kind": "map", "changes": {"d1": {"pain": 5}}, "base": {}})
+        self.assertEqual(r.json()["conflicts"], {"d1": {"pain": 2}})
+        ok = self.c.patch("/api/state/daily/records", headers=ol, json={"kind": "map", "changes": {"d1": {"pain": 5}}, "base": {"d1": 1}})
+        self.assertEqual(ok.json()["value"]["d1"], {"pain": 5})
+
+    def test_list_records_and_delete(self):
+        h = login(self.c, "olivia@lab.test")
+        self.c.patch("/api/state/assess/records", headers=h, json={"kind": "list", "changes": {"a": {"id": "a", "x": 1}, "b": {"id": "b", "x": 2}}, "base": {}})
+        r = self.c.patch("/api/state/assess/records", headers=h, json={"kind": "list", "changes": {"a": None}, "base": {"a": 1}})
+        self.assertEqual(r.json()["value"], [{"id": "b", "x": 2}])
+
+    def test_coach_cannot_patch_player1(self):
+        self.assertEqual(self.c.patch("/api/state/daily/records", headers=login(self.c, "javi@lab.test"), json={"kind": "map", "changes": {"x": 1}}).status_code, 403)
+
+
+class TwoStep(unittest.TestCase):
+    def test_totp_flow_and_player1_gate(self):
+        from core import totp
+        store = MemoryStore(); keys = Keys("y" * 40, gen_field_key())
+        asyncio.run(store.add_user({"email": "jp@lab.test", "role": "lead", "person": "jp", "p1": True, "password_hash": hash_password(PW)}))
+        c = TestClient(create_app(store, keys, require_2fa_p1=True))
+        h = login(c, "jp@lab.test")
+        r = c.get("/api/state/daily", headers=h)
+        self.assertEqual(r.json().get("reason"), "2fa_required")
+        secret = c.post("/api/auth/2fa/setup", headers=h).json()["secret"]
+        self.assertEqual(c.post("/api/auth/2fa/enable", headers=h, json={"code": "000000" if totp.code_at(secret, __import__('time').time()) != "000000" else "111111"}).status_code, 400)
+        self.assertEqual(c.post("/api/auth/2fa/enable", headers=h, json={"code": totp.code_at(secret, __import__('time').time())}).status_code, 200)
+        self.assertTrue(c.post("/api/auth/login", json={"email": "jp@lab.test", "password": PW}).json().get("need_code"))
+        r = c.post("/api/auth/login", json={"email": "jp@lab.test", "password": PW, "code": totp.code_at(secret, __import__('time').time())})
+        self.assertEqual(r.status_code, 200)
+        h2 = {"Authorization": "Bearer " + r.json()["token"]}
+        self.assertEqual(c.get("/api/state/daily", headers=h2).status_code, 200)
+
+    def test_rfc6238_vector(self):
+        from core import totp
+        secret = __import__('base64').b32encode(b"12345678901234567890").decode()
+        self.assertEqual(totp.code_at(secret, 59, digits=8), "94287082")
+
+
 if __name__ == "__main__":
     unittest.main()
