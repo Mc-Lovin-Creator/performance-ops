@@ -1,0 +1,9 @@
+starlette>=0.37
+uvicorn[standard]>=0.29
+motor>=3.4
+pyjwt>=2.8
+cryptography>=42
+python-dotenv>=1.0
+# tests
+pytest>=8
+httpx>=0.27
