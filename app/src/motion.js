@@ -51,7 +51,7 @@ function motionLesson(m) {
       <p class="lab-src">${m.src.map(srcLink).join(' · ')} · Roles change with the task: a muscle that is an agonist in one movement can be an antagonist or a fixator in another.</p>
     </div></div>`;
 }
-const MO_CAM = { elbow: null, calf: [[0.05, 0.42, -1.25], [-0.09, 0.3, 0]], lateral: [[-2.6, 1.0, 0.6], [0, 0.78, 0]], anterior: [[0.2, 1.0, 3.2], [0, 0.82, 0]], smash: [[-1.7, 1.45, 1.7], [-0.15, 1.25, 0]] };
+const MO_CAM = { elbow: null, calf: [[0.05, 0.45, -1.5], [-0.09, 0.32, 0]], lateral: [[-3.1, 0.9, 1.0], [0, 0.72, 0]], anterior: [[0.2, 0.95, 3.4], [0, 0.78, 0]], smash: [[-2.3, 1.4, 2.3], [-0.1, 1.15, 0]] };
 function motionMount() {
   const host = document.getElementById('mo-host'); if (!host || !window.AnatomyLab) return;
   const m = MOTIONS.find(x => x.id === MO.id) || MOTIONS[0], L = AnatomyLab;
