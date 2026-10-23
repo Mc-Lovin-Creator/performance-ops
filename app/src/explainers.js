@@ -81,3 +81,16 @@ document.addEventListener('click', e => {
   keepRender();
 });
 document.addEventListener('keydown', e => { if (!document.querySelector('.dk') || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName)) return; const d = DECKS.find(x => x.id === DK.id); if (!d) return; if (e.key === 'ArrowRight' && DK.i < d.slides.length - 1) { DK.i++; keepRender(); } else if (e.key === 'ArrowLeft' && DK.i) { DK.i--; keepRender(); } });
+
+/* Player 1 dashboard: today's learning, tied to his return (spring ligament, calf and foot loading) */
+function p1LearnStrip() {
+  const items = [['motion', 'calf', 'Watch: the calf raise', 'Agonist, antagonist and stabilisers of his main rehab exercise, on the 3D body'], ['deck', 'tendon', 'Read: the tendon playbook', 'Why load, not rest, rebuilds tendon capacity'], ['deck', 'foot', 'Read: the foot tripod', 'What the foot core does, and what we do not claim'], ['anat', 'spring_ligament_R', 'Explore: his spring ligament', 'The sling under the talus, in the anatomy lab']];
+  return `<section class="p1learn"><div class="sec-head"><div><span class="eyebrow">Learn today · for the clinical team</span><h2>The science behind today's plan</h2></div></div>
+    <div class="p1learn-g">${items.map(([k, a, t, d], i) => `<button class="p1learn-c" data-p1learn="${k}" data-arg="${a}" style="--i:${i}"><b>${esc(t)}</b><span>${esc(d)}</span></button>`).join('')}</div></section>`;
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-p1learn]'); if (!t) return; const k = t.dataset.p1learn, a = t.dataset.arg;
+  if (k === 'motion') { MO.id = a; EDU.dom = 'motion'; EDU.sec = 'movements'; go('p1edu'); }
+  else if (k === 'deck') { DK.id = a; DK.i = 0; EDU.dom = 'explain'; EDU.sec = 'decks'; go('p1edu'); }
+  else if (k === 'anat') go('p1anat');
+});
