@@ -7,6 +7,7 @@ Environment (see .env.example): MONGO_URL, DB_NAME, JWT_SECRET, FIELD_KEY, CORS_
 """
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -299,6 +300,43 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
             return await fn(req, user)
         return needs_user(wrapped)
 
+    async def first_lead(req: Request):
+        """One-time set-up: creates the first lead account, only while the server has no accounts and only with
+        the SETUP_TOKEN from the environment. Remove SETUP_TOKEN once used (the route then answers 404)."""
+        tok = os.environ.get("SETUP_TOKEN", "")
+        if len(tok) < 32 or await store.list_users():
+            return err(404, "not found")
+        try:
+            b = await req.json()
+            if not hmac.compare_digest(tok, str(b.get("setup_token", ""))):
+                await audit(None, "first-lead refused", req=req)
+                return err(403, "wrong set-up key")
+            doc = {"email": str(b["email"]).strip().lower(), "role": "lead", "person": str(b.get("person") or "jp"), "p1": True,
+                   "password_hash": hash_password(str(b["password"]))}
+        except ValueError as e:
+            return err(400, str(e))
+        except Exception:
+            return err(400, "email, password and setup_token required")
+        u = await store.add_user(doc)
+        await audit(None, "first lead created", u["email"], "remove SETUP_TOKEN now", req=req)
+        return JSONResponse({"user": public_user(u)}, status_code=201)
+
+    @needs_user
+    async def change_password(req, user: User):
+        try:
+            b = await req.json()
+            u = await store.user_by_id(user.id)
+            if not verify_password(str(b["old"]), u.get("password_hash", "")):
+                await audit(user, "password change refused", req=req)
+                return err(403, "current password is wrong")
+            await store.update_user(user.id, {"password_hash": hash_password(str(b["new"]))})
+        except ValueError as e:
+            return err(400, str(e))
+        except Exception:
+            return err(400, "old and new password required")
+        await audit(user, "password changed", req=req)
+        return JSONResponse({"ok": True})
+
     @lead_only
     async def users(req, user: User):
         if req.method == "GET":
@@ -345,6 +383,8 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         Route("/api/health", health),
         Route("/api/auth/login", login, methods=["POST"]),
         Route("/api/auth/me", me),
+        Route("/api/auth/password", change_password, methods=["POST"]),
+        Route("/api/setup/first-lead", first_lead, methods=["POST"]),
         Route("/api/auth/2fa/setup", twofa_setup, methods=["POST"]),
         Route("/api/auth/2fa/enable", twofa_enable, methods=["POST"]),
         Route("/api/state", state_all),

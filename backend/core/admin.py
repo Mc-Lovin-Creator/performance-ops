@@ -1,6 +1,7 @@
 """Admin commands. Passwords are typed at a hidden prompt, never passed on the command line or stored in the repo.
 
   python -m core.admin gen-key                      print a new FIELD_KEY and JWT_SECRET
+  python -m core.admin gen-key --wear               also print WEAR_CRON_KEY and GARMIN_PUSH_KEY
   python -m core.admin create-user EMAIL ROLE PERSON [--p1]
         ROLE: lead, physio, physician, coach, manager, athlete
         PERSON: the app's person id (jp, olivia, dr, javi, ...)
@@ -40,6 +41,9 @@ def main(argv: list[str]):
     if argv[0] == "gen-key":
         print("FIELD_KEY=" + gen_field_key())
         print("JWT_SECRET=" + secrets.token_urlsafe(48))
+        if "--wear" in argv:
+            print("WEAR_CRON_KEY=" + secrets.token_urlsafe(40))
+            print("GARMIN_PUSH_KEY=" + secrets.token_urlsafe(32))
         return
     if argv[0] == "create-user" and len(argv) >= 4:
         from server import _load_env

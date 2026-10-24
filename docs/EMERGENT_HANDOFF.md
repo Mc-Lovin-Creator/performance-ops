@@ -4,13 +4,12 @@ This repo is laid out the way Emergent runs projects: `frontend/` on port 3000 (
 
 ## First run in Emergent
 
-1. Import the GitHub repo `performance-lab-os`.
-2. Backend environment: `MONGO_URL`, `DB_NAME` (Emergent provides these), plus `JWT_SECRET` and `FIELD_KEY` generated with `python -m core.admin gen-key`. Set `CORS_ORIGINS` to the frontend URL.
-3. Frontend environment: `REACT_APP_BACKEND_URL` (Emergent provides it).
-4. Create the first account from the backend shell: `python -m core.admin create-user <email> lead jp --p1`, then sign in and add the team from the API (`POST /api/users`, lead only).
-5. `frontend/package.json` runs `python3 app/build.py` before start and build, so `public/index.html` always matches `app/src`.
+Follow the staged guide in [`deploy/README.md`](../deploy/README.md): stage 0 (prepare) to stage 6 (go-live), each with a paste-in prompt and a check script. The repo is the master copy; changes go through [`deploy/CHANGES.md`](../deploy/CHANGES.md).
 
 ## Instructions for the Emergent agent
+
+The short, strict version is [`deploy/EMERGENT_RULES.md`](../deploy/EMERGENT_RULES.md); every stage prompt tells the agent to read it.
+
 
 - Edit the app in `app/src/`, never in `frontend/public/index.html` (it is generated).
 - Keep the module order in `app/build.py`. New modules go into `ORDER`.
@@ -27,6 +26,8 @@ This repo is laid out the way Emergent runs projects: `frontend/` on port 3000 (
 | --- | --- | --- | --- |
 | GET | /api/health | anyone | liveness |
 | POST | /api/auth/login | anyone | email + password, returns a 12-hour token (10 tries per 5 min) |
+| POST | /api/auth/password | signed in | change own password (`old`, `new`) |
+| POST | /api/setup/first-lead | set-up only | first lead account; works only with `SETUP_TOKEN` and no accounts yet |
 | GET | /api/auth/me | signed in | user and the keys they may read |
 | GET | /api/state | signed in | all state they may read |
 | GET, PUT | /api/state/{key} | by policy | read or write one key; `{value, version}` with version checks |

@@ -55,7 +55,7 @@ const SYNC = (() => {
   }
   function syncBadge(t) { const b = document.getElementById('sync-badge'); if (b) { b.querySelector('em').textContent = t; b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 900); } }
   function loginOverlay(msg) {
-    const o = document.createElement('div'); o.className = 'login-o'; o.innerHTML = `<form class="login-c" autocomplete="on"><span class="eyebrow">Performance Lab OS</span><h1>Sign in</h1><p class="muted">Private clinical system. Your access is set by your role.</p>
+    const o = document.createElement('div'); o.className = 'login-o'; o.innerHTML = `<form class="login-c" autocomplete="on"><span class="eyebrow">Performance Ops</span><p class="login-slogan">We keep punching above our weight.</p><h1>Sign in</h1><p class="muted">Private clinical system. Your access is set by your role.</p>
       <label class="field">Email<input name="email" type="email" required autocomplete="username"></label><label class="field">Password<input name="password" type="password" required autocomplete="current-password"></label>
       <label class="field login-code" ${S2.needCode ? '' : 'hidden'}>6-digit code from your authenticator app<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8"></label>
       ${msg ? `<p class="login-err">${esc(msg)}</p>` : ''}<button class="btn primary" type="submit">Sign in</button></form>`;
@@ -84,6 +84,33 @@ const SYNC = (() => {
       if (x.ok) { S2.user.needs_2fa = false; ss.set('user', S2.user); toast('Two-step sign-in is on. Signing you in again.'); setTimeout(() => signOut(), 1400); }
       else { const er = o.querySelector('.login-err'); er.hidden = false; er.textContent = x.body.error || 'That code did not match'; } });
   }
+  async function accounts() {
+    const lead = S2.user && S2.user.role === 'lead';
+    const o = document.createElement('div'); o.className = 'login-o'; o.innerHTML = `<div class="login-c acct"><span class="eyebrow">Signed in as ${esc(S2.user.email)} · ${esc(S2.user.role)}</span><h1>Account</h1>
+      <form data-pw class="acct-f"><b>Change your password</b><label class="field">Current password<input name="old" type="password" required autocomplete="current-password"></label>
+      <label class="field">New password (12+ characters)<input name="new" type="password" minlength="12" required autocomplete="new-password"></label><p class="login-err" hidden></p><button class="btn" type="submit">Change password</button></form>
+      ${lead ? `<div class="acct-team"><b>Team accounts</b><div data-list class="muted">Loading…</div>
+      <form data-add class="acct-f"><b>Add a person</b><label class="field">Email<input name="email" type="email" required autocomplete="off"></label>
+      <label class="field">Role<select name="role">${['physio', 'physician', 'coach', 'manager', 'athlete', 'lead'].map(r => `<option>${r}</option>`).join('')}</select></label>
+      <label class="field">Person in the app<select name="person">${(typeof PEOPLE !== 'undefined' ? PEOPLE : []).map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label>
+      <label class="consent-i"><input type="checkbox" name="p1"><span><b>Player 1 access</b><em>Clinicians only (lead, physio, physician). They must turn on two-step sign-in.</em></span></label>
+      <label class="field">Temporary password (12+ characters, give it to them in person; they change it here)<input name="password" type="password" minlength="12" required autocomplete="new-password"></label><p class="login-err" hidden></p><button class="btn primary" type="submit">Add</button></form></div>` : ''}
+      <div style="display:flex;gap:8px"><button class="btn" type="button" data-close>Close</button></div></div>`;
+    document.body.appendChild(o); o.querySelector('[data-close]').onclick = () => o.remove();
+    const errIn = (f, m) => { const e = f.querySelector('.login-err'); e.hidden = !m; e.textContent = m || ''; };
+    o.querySelector('[data-pw]').addEventListener('submit', async e => { e.preventDefault(); const f = new FormData(e.target); const r = await req('POST', '/auth/password', { old: f.get('old'), new: f.get('new') });
+      if (r.ok) { e.target.reset(); errIn(e.target, ''); toast('Password changed'); } else errIn(e.target, r.body.error || 'Not changed'); });
+    if (!lead) return;
+    const list = async () => { const r = await req('GET', '/users'); const L = o.querySelector('[data-list]'); if (!r.ok) { L.textContent = r.body.error || 'Not available'; return; }
+      L.innerHTML = `<div class="acct-l">${r.body.users.map(u => `<div class="acct-r${u.active === false ? ' off' : ''}"><span><b>${esc(u.email)}</b><em>${esc(u.role)} · ${esc(u.person || '')}${u.p1 ? ' · Player 1' : ''}${u.p1 && !u.totp ? ' · two-step OFF' : u.totp ? ' · two-step on' : ''}</em></span>
+        ${u.id === S2.user.id ? '<em>you</em>' : `<button class="btn sm" data-act="${u.active === false ? 'on' : 'off'}" data-id="${esc(u.id)}">${u.active === false ? 'Reactivate' : 'Deactivate'}</button>${['lead', 'physio', 'physician'].includes(u.role) ? `<button class="btn sm" data-act="${u.p1 ? 'p1off' : 'p1on'}" data-id="${esc(u.id)}">${u.p1 ? 'Remove Player 1' : 'Give Player 1'}</button>` : ''}`}</div>`).join('')}</div>`; };
+    o.querySelector('[data-list]').addEventListener('click', async e => { const b = e.target.closest('[data-act]'); if (!b) return; const a = b.dataset.act;
+      const body = a === 'off' ? { active: false } : a === 'on' ? { active: true } : { p1: a === 'p1on' }; const r = await req('PATCH', '/users/' + b.dataset.id, body); toast(r.ok ? 'Updated' : (r.body.error || 'Not updated')); list(); });
+    o.querySelector('[data-add]').addEventListener('submit', async e => { e.preventDefault(); const f = new FormData(e.target);
+      const r = await req('POST', '/users', { email: f.get('email'), role: f.get('role'), person: f.get('person'), p1: !!f.get('p1'), password: f.get('password') });
+      if (r.ok) { e.target.reset(); errIn(e.target, ''); toast('Added ' + r.body.user.email); list(); } else errIn(e.target, r.body.error || 'Not added'); });
+    list();
+  }
   function init() {
     if (!S2.on) return;
     if (!S2.token) { store.set = () => { }; clearLocal(); setTimeout(clearLocal, 0); document.documentElement.classList.add('locked'); return loginOverlay(); }
@@ -91,8 +118,8 @@ const SYNC = (() => {
     if (S2.user && store.get('me') !== S2.user.person) orig('me', S2.user.person);
     setTimeout(() => {
       const w = document.getElementById('who'); if (w) { w.disabled = true; w.title = 'Signed in as ' + (S2.user ? S2.user.email : ''); }
-      const b = document.createElement('div'); b.id = 'sync-badge'; b.innerHTML = `<i></i><span>${esc(S2.user ? S2.user.email : '')}</span><em>Synced</em><button type="button">Sign out</button>`; document.body.appendChild(b);
-      b.querySelector('button').addEventListener('click', () => signOut());
+      const b = document.createElement('div'); b.id = 'sync-badge'; b.innerHTML = `<i></i><span>${esc(S2.user ? S2.user.email : '')}</span><em>Synced</em><button type="button" data-acct>Account</button><button type="button" data-out>Sign out</button>`; document.body.appendChild(b);
+      b.querySelector('[data-out]').addEventListener('click', () => signOut()); b.querySelector('[data-acct]').addEventListener('click', () => accounts());
       if (S2.user && S2.user.needs_2fa) twoStep();
     }, 0);
     setInterval(async () => { try { const ch = await pull(false); if (ch.length) { syncBadge(ch.length + ' update' + (ch.length > 1 ? 's' : '') + ' from the team'); const bb = document.getElementById('sync-badge'); if (bb && !bb.querySelector('.reload')) { const r = document.createElement('button'); r.className = 'reload'; r.textContent = 'Load'; r.onclick = async () => { await pull(true); location.reload(); }; bb.appendChild(r); } } } catch (e) { } }, 60000);

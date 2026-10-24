@@ -214,3 +214,32 @@ class TwoStep(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FirstRunAndPasswords(unittest.TestCase):
+    def test_first_lead_only_once_and_only_with_key(self):
+        store, keys = MemoryStore(), Keys("x" * 40, gen_field_key())
+        c = TestClient(create_app(store, keys))
+        os.environ.pop("SETUP_TOKEN", None)
+        body = {"email": "lead@lab.test", "password": PW, "setup_token": "s" * 40}
+        self.assertEqual(c.post("/api/setup/first-lead", json=body).status_code, 404)   # no key set: route is off
+        os.environ["SETUP_TOKEN"] = "s" * 40
+        try:
+            self.assertEqual(c.post("/api/setup/first-lead", json=dict(body, setup_token="t" * 40)).status_code, 403)
+            self.assertEqual(c.post("/api/setup/first-lead", json=dict(body, password="short")).status_code, 400)
+            r = c.post("/api/setup/first-lead", json=body)
+            self.assertEqual(r.status_code, 201)
+            self.assertEqual((r.json()["user"]["role"], r.json()["user"]["p1"]), ("lead", True))
+            self.assertEqual(c.post("/api/setup/first-lead", json=dict(body, email="second@lab.test")).status_code, 404)  # never again
+            login(c, "lead@lab.test")
+        finally:
+            os.environ.pop("SETUP_TOKEN", None)
+
+    def test_change_own_password(self):
+        c, store, keys = setup_app()
+        h = login(c, "javi@lab.test")
+        self.assertEqual(c.post("/api/auth/password", json={"old": "wrong one entirely", "new": "another long password"}, headers=h).status_code, 403)
+        self.assertEqual(c.post("/api/auth/password", json={"old": PW, "new": "short"}, headers=h).status_code, 400)
+        self.assertEqual(c.post("/api/auth/password", json={"old": PW, "new": "another long password"}, headers=h).status_code, 200)
+        self.assertEqual(c.post("/api/auth/login", json={"email": "javi@lab.test", "password": PW}).status_code, 401)
+        self.assertEqual(c.post("/api/auth/login", json={"email": "javi@lab.test", "password": "another long password"}).status_code, 200)

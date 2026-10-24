@@ -210,9 +210,11 @@ class Flows(unittest.TestCase):
         st = {p["id"]: p for p in self.c.get("/api/wear", headers=self.jp).json()["providers"]}
         self.assertTrue(st["oura"]["connected"])
         self.assertEqual(st["oura"]["last_days"], 1)
-        log = json.dumps(self.c.get("/api/audit", headers=self.jp).json())
-        self.assertIn("wearable connected", log)
-        self.assertNotIn("61", log.replace("2026", ""))  # no values in the audit trail
+        entries = self.c.get("/api/audit", headers=self.jp).json()["audit"]
+        self.assertIn("wearable connected", [e["action"] for e in entries])
+        text = " ".join(f"{e['action']} {e['target']} {e['detail']}" for e in entries)
+        for v in ("61", "48", "7.5", "82"):   # no measured values in the audit trail
+            self.assertNotIn(v, text)
 
     def test_whoop_refreshes_on_401(self):
         self.fake.whoop_fail_once = True

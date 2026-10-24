@@ -64,7 +64,15 @@ try {
   check(!JSON.stringify(await (await fetch('http://localhost:8011/api/state', { headers: H })).json()).includes('oura-at'), 'provider tokens never reach the browser');
   if (process.env.E2E_SHOT) { await p.evaluate(() => document.querySelector('.wear').scrollIntoView()); await p.screenshot({ path: process.env.E2E_SHOT }); }
   check(errs.length === 0, 'no page errors after wearables (' + errs.join(' | ').slice(0, 200) + ')');
-  await p.click('#sync-badge button'); await p.waitForSelector('.login-c');
+  // accounts screen: the lead adds a person and sees two-step status
+  await p.click('#sync-badge [data-acct]'); await p.waitForSelector('.acct [data-list] .acct-r');
+  await p.fill('.acct [data-add] input[name=email]', 'newphysio@lab.test'); await p.selectOption('.acct [data-add] select[name=role]', 'physio');
+  await p.check('.acct [data-add] input[name=p1]'); await p.fill('.acct [data-add] input[name=password]', 'temporary-pass-' + Date.now());
+  await p.click('.acct [data-add] button[type=submit]'); await p.waitForSelector('.acct-r:has-text("newphysio@lab.test")', { timeout: 8000 });
+  check((await p.textContent('.acct-r:has-text("newphysio@lab.test")')).includes('two-step OFF'), 'lead adds a person; Player 1 access shows two-step status');
+  await p.click('.acct [data-close]');
+  check(errs.length === 0, 'no page errors in accounts (' + errs.join(' | ').slice(0, 200) + ')');
+  await p.click('#sync-badge [data-out]'); await p.waitForSelector('.login-c');
   const left = await p.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('plos.')).length);
   check(left === 0, 'sign-out clears the device copy');
 } finally { await b.close(); srv.kill(); }
