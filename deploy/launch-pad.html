@@ -1,0 +1,224 @@
+<title>Performance Ops Launch Pad</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a fight-card run sheet. Gold ring-rope rule down the left, six rounds stacked, each with its corner instructions and the line to paste. */
+:root{
+  --bg:#07080c; --panel:#0f1118; --panel-2:#151824; --line:#252a3a; --fg:#eef0f6; --muted:#9aa1b5; --gold:#f5d90a; --gold-ink:#141000; --ok:#22c55e; --warn:#f59e0b;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f5ef;--panel:#ffffff;--panel-2:#f1efe6;--line:#dedbcd;--fg:#14151b;--muted:#5d6070;--gold:#c9a800;--gold-ink:#141000;--ok:#15803d;--warn:#b45309;color-scheme:light}}
+:root[data-theme="light"]{--bg:#f6f5ef;--panel:#ffffff;--panel-2:#f1efe6;--line:#dedbcd;--fg:#14151b;--muted:#5d6070;--gold:#c9a800;--gold-ink:#141000;--ok:#15803d;--warn:#b45309;color-scheme:light}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:880px;margin:0 auto}
+header.hero{position:relative;padding-block:44px 28px;display:grid;gap:14px;overflow:hidden}
+header.hero::before{content:"";position:absolute;inset:-40% -20% auto auto;width:520px;height:520px;background:radial-gradient(closest-side,color-mix(in srgb,var(--gold) 26%,transparent),transparent);pointer-events:none;animation:pulse 6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.12);opacity:.7}}
+@media (prefers-reduced-motion:reduce){header.hero::before{animation:none}}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+h1{font:900 clamp(44px,9vw,92px)/.9 var(--display);text-transform:uppercase;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--gold)}
+.lede{max-width:62ch;color:var(--muted);margin:0}
+.meter{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.bar{flex:1 1 220px;height:10px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .4s}
+.meter b{font:700 22px/1 var(--display);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.rules{display:flex;flex-wrap:wrap;gap:8px}
+.rule{font:500 12.5px/1 var(--body);padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}
+.rule b{color:var(--gold)}
+ol.rounds{list-style:none;margin:20px 0 0;padding:0 0 0 22px;border-left:3px solid var(--gold);display:grid;gap:18px}
+.round{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px;display:grid;gap:12px;min-width:0}
+.round::before{content:attr(data-n);position:absolute;left:-41px;top:14px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:3px solid var(--gold);font:900 18px/1 var(--display);color:var(--gold)}
+.round.done{border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.round.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:var(--bg)}
+.rhead{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.rhead h2{font:700 28px/1 var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0;text-wrap:balance}
+.rhead .tag{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:6px;display:block}
+.done-t{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:pointer;user-select:none;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel-2)}
+.done-t input{accent-color:var(--ok);width:16px;height:16px}
+.you{margin:0;padding-left:18px;display:grid;gap:5px}
+.you li::marker{color:var(--gold)}
+code{font:500 13px var(--mono);background:var(--panel-2);border:1px solid var(--line);padding:1px 6px;border-radius:6px;overflow-wrap:anywhere}
+.paste{border:1px solid var(--line);border-radius:14px;background:var(--panel-2);overflow:hidden;min-width:0}
+.paste-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 14px;border-bottom:1px solid var(--line)}
+.paste-h span{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.paste pre{margin:0;padding:14px;font:12.5px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto}
+button{font:600 13px var(--body);border-radius:999px;padding:8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer}
+button:focus-visible,.done-t:focus-within,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button.gold{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+button.copied{background:var(--ok);border-color:var(--ok);color:var(--bg)}
+.done-line{font-size:13px;color:var(--muted);margin:0}
+.done-line b{color:var(--fg)}
+.keys{display:grid;gap:8px}
+.krow{display:grid;grid-template-columns:150px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2)}
+.krow b{font:600 13px var(--mono)}
+.krow output{font:12.5px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);min-width:0}
+.krow.shown output{white-space:normal;overflow-wrap:anywhere;color:var(--fg)}
+.safe{font-size:12.5px;color:var(--muted);margin:0;padding:10px 12px;border-radius:12px;border:1px dashed var(--line)}
+.safe b{color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+.tbl{overflow-x:auto}
+td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h3{font:700 22px/1 var(--display);text-transform:uppercase;letter-spacing:.03em;margin:36px 0 12px}
+.any{display:grid;gap:14px}
+details.paste summary{list-style:none;cursor:pointer}
+details.paste summary::-webkit-details-marker{display:none}
+footer{margin-top:40px;color:var(--muted);font-size:13px;display:grid;gap:6px}
+footer a,.round a{color:var(--gold)}
+@media (max-width:560px){.krow{grid-template-columns:1fr auto auto}.krow b{grid-column:1/-1}.round::before{left:-37px;width:30px;height:30px;font-size:15px}ol.rounds{padding-left:16px}}
+</style>
+
+<div class="wrap">
+<header class="hero">
+  <span class="eyebrow">Performance Ops · Emergent launch pad · staging</span>
+  <h1>We keep punching <em>above our weight.</em></h1>
+  <p class="lede">Six rounds from an empty Emergent project to your team signed in on staging. Each round says what you do, then gives you the exact line to paste into Emergent's chat. Demo data only until go-live.</p>
+  <div class="meter"><div class="bar" aria-hidden="true"><i id="bar"></i></div><b id="count">0 / 6</b></div>
+  <div class="rules">
+    <span class="rule"><b>Secrets</b> go in Emergent's settings, never the chat</span>
+    <span class="rule"><b>GitHub</b> is the master copy</span>
+    <span class="rule"><b>No real patient data</b> until stage 6</span>
+  </div>
+</header>
+
+<ol class="rounds">
+  <li class="round" data-n="1" id="r1">
+    <div class="rhead"><div><h2>Make the keys</h2><span class="tag">Stage 0 · 2 minutes</span></div><label class="done-t"><input type="checkbox" id="d1">Done</label></div>
+    <ul class="you"><li>Press <b>Make keys</b>. They are made by this browser's own random generator, never sent anywhere and never saved. Closing or reloading the page forgets them.</li><li>Copy each one into your password manager as <b>Performance Ops: staging</b>. You will paste them into Emergent's settings in round 2.</li></ul>
+    <div class="keys" id="keys">
+      <div class="krow" data-k="JWT_SECRET"><b>JWT_SECRET</b><output>not made yet</output><button type="button" data-show>Show</button><button type="button" data-copyk>Copy</button></div>
+      <div class="krow" data-k="FIELD_KEY"><b>FIELD_KEY</b><output>not made yet</output><button type="button" data-show>Show</button><button type="button" data-copyk>Copy</button></div>
+      <div class="krow" data-k="SETUP_TOKEN"><b>SETUP_TOKEN</b><output>not made yet</output><button type="button" data-show>Show</button><button type="button" data-copyk>Copy</button></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="gold" id="make">Make keys</button></div>
+    <p class="safe"><b>FIELD_KEY encrypts clinical data.</b> If it is lost, that data cannot be read. Keep it in the password manager and never change it on a running server.</p>
+  </li>
+
+  <li class="round" data-n="2" id="r2">
+    <div class="rhead"><div><h2>Import the repo</h2><span class="tag">Stage 1 · in Emergent</span></div><label class="done-t"><input type="checkbox" id="d2">Done</label></div>
+    <ul class="you"><li>New project → import from GitHub: <code>Mc-Lovin-Creator/threshold</code>, branch <code>performance-lab-os</code>. Name it <b>Performance Ops</b>.</li><li>Open the backend <b>environment settings</b> and add these yourself:</li></ul>
+    <div class="tbl"><table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>
+      <tr><td><code>JWT_SECRET</code></td><td>from round 1</td></tr>
+      <tr><td><code>FIELD_KEY</code></td><td>from round 1</td></tr>
+      <tr><td><code>SETUP_TOKEN</code></td><td>from round 1</td></tr>
+      <tr><td><code>REQUIRE_2FA_P1</code></td><td><code>1</code></td></tr>
+      <tr><td><code>DB_NAME</code></td><td><code>performance_ops_staging</code></td></tr>
+      <tr><td><code>CORS_ORIGINS</code></td><td>the preview address (add after round 3 if you don't have it yet, then restart)</td></tr>
+    </tbody></table></div>
+  </li>
+
+  <li class="round" data-n="3" id="r3">
+    <div class="rhead"><div><h2>Install and run</h2><span class="tag">Stage 1 · paste into Emergent</span></div><label class="done-t"><input type="checkbox" id="d3">Done</label></div>
+    <div class="paste"><div class="paste-h"><span>Paste into Emergent</span><button type="button" class="gold" data-copy="p0">Copy</button></div><pre id="p0">Project: Performance Ops. Slogan: &quot;We keep punching above our weight.&quot;
+Read EMERGENT_START.md and deploy/EMERGENT_RULES.md first and follow them strictly. This repository is complete and tested; do not
+rewrite, refactor or restyle anything, and do not change any file.
+1. Install backend dependencies from backend/requirements.txt and frontend dependencies with yarn in frontend/.
+2. Run the backend from backend/ with: uvicorn server:app --host 0.0.0.0 --port 8001
+   and the frontend from frontend/ with: yarn start (port 3000). frontend/package.json runs python3 app/build.py first.
+3. Report yes or no (never the value) for: MONGO_URL, DB_NAME, JWT_SECRET, FIELD_KEY, SETUP_TOKEN, CORS_ORIGINS (backend) and
+   REACT_APP_BACKEND_URL (frontend). If one is missing, stop and tell me which.
+4. Restart both services, then run:  python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1
+   and paste its full output. Also tell me the public preview URL and whether it shows the Performance Ops sign-in screen.
+Do not create accounts, keys, passwords or test data.</pre></div>
+    <p class="done-line"><b>Done when</b> the agent's check says <code>PASSED</code> and the preview shows <b>Create the first lead account</b>.</p>
+  </li>
+
+  <li class="round" data-n="4" id="r4">
+    <div class="rhead"><div><h2>Your lead account</h2><span class="tag">Stage 2 · on the preview</span></div><label class="done-t"><input type="checkbox" id="d4">Done</label></div>
+    <ul class="you"><li>Open the preview. Enter your <code>SETUP_TOKEN</code>, your work email and a new password (12+ characters). This works once.</li><li>Then <b>delete <code>SETUP_TOKEN</code></b> from Emergent's environment settings and paste:</li></ul>
+    <div class="paste"><div class="paste-h"><span>Paste into Emergent</span><button type="button" class="gold" data-copy="p1">Copy</button></div><pre id="p1">Read deploy/EMERGENT_RULES.md. I removed SETUP_TOKEN from the backend environment. Restart the backend only, then run
+python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1 and paste the output, and confirm that
+GET /api/setup/status returns {&quot;open&quot;: false}. Change nothing else.</pre></div>
+  </li>
+
+  <li class="round" data-n="5" id="r5">
+    <div class="rhead"><div><h2>Two-step and the team</h2><span class="tag">Stage 2 · in the app</span></div><label class="done-t"><input type="checkbox" id="d5">Done</label></div>
+    <ul class="you">
+      <li>Sign in. The app asks for two-step sign-in: in your authenticator app choose "enter a setup key", type the key shown, then enter the 6-digit code and sign in again.</li>
+      <li><b>Account</b> (bottom-left) → <b>Team accounts</b> → <b>Add a person</b>: Olivia (physio, Player 1 access), the physician (physician, Player 1 access), Javi (coach, no Player 1 access).</li>
+      <li>Give each person their temporary password <b>in person</b>. They change it under Account.</li>
+    </ul>
+    <p class="done-line"><b>Done when</b> the team list shows "two-step on" for you, Olivia and the physician.</p>
+  </li>
+
+  <li class="round" data-n="6" id="r6">
+    <div class="rhead"><div><h2>Deploy staging</h2><span class="tag">Stage 3 · in Emergent</span></div><label class="done-t"><input type="checkbox" id="d6">Done</label></div>
+    <ul class="you"><li>Press <b>Deploy</b> in Emergent. Set <code>CORS_ORIGINS</code> to the deployed address, then paste (put the address where it says so):</li></ul>
+    <div class="paste"><div class="paste-h"><span>Paste into Emergent</span><button type="button" class="gold" data-copy="p2">Copy</button></div><pre id="p2">Read deploy/EMERGENT_RULES.md. I updated CORS_ORIGINS to the deployed address. Restart the backend and run
+python3 scripts/check_deploy.py --api &lt;deployed address&gt; --stage 1 and paste the output. Then tell me, from Emergent&#x27;s plan and
+documentation: is the database backed up, how often, how long backups are kept, and how to restore one. Change nothing else.</pre></div>
+    <p class="done-line"><b>Then</b> write the backup answers in <code>deploy/STATUS.md</code> and run the staging walk-through with demo data. Real data waits for the UAE hosting sign-off (stage 5).</p>
+  </li>
+</ol>
+
+<h3>Any time</h3>
+<div class="any">
+  <details class="paste"><summary class="paste-h"><span>Pull the latest version (after the green tick on GitHub)</span><button type="button" data-copy="p3">Copy</button></summary><pre id="p3">Read deploy/EMERGENT_RULES.md. Pull the latest commit from GitHub branch performance-lab-os. Reinstall dependencies only if
+backend/requirements.txt or frontend/package.json changed. Restart backend and frontend. Report the commit hash you are running and
+paste the output of: python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1
+Change nothing else.</pre></details>
+  <details class="paste"><summary class="paste-h"><span>Go back to an earlier version</span><button type="button" data-copy="p4">Copy</button></summary><pre id="p4">Read deploy/EMERGENT_RULES.md. Check out commit &lt;commit hash or tag&gt; from GitHub, restart backend and frontend, report the commit
+hash and paste the output of: python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1
+Change nothing else. (The database is not rolled back; only the code.)</pre></details>
+  <details class="paste"><summary class="paste-h"><span>Emergent's agent wants to change a file</span><button type="button" data-copy="p5">Copy</button></summary><pre id="p5">Read deploy/EMERGENT_RULES.md. Before changing anything, list the files you want to change and why, and wait for my yes. Then make
+only those changes, run npm test (or at least python3 app/build.py, node tests/static_checks.mjs and cd backend &amp;&amp; python -m pytest -q),
+and use Save to GitHub on a NEW branch named emergent/&lt;yyyy-mm-dd&gt;-&lt;short-name&gt;, never on performance-lab-os. Report the branch name.</pre></details>
+  <details class="paste"><summary class="paste-h"><span>Later: wearables (stage 4)</span><button type="button" data-copy="p6">Copy</button></summary><pre id="p6">Read deploy/EMERGENT_RULES.md and docs/WEARABLES.md. Restart the backend. Report yes or no (never values) for OURA_CLIENT_ID,
+WHOOP_CLIENT_ID, POLAR_CLIENT_ID, GARMIN_CLIENT_ID, PUBLIC_API_URL, APP_URL and WEAR_CRON_KEY. Then set up a daily scheduled job at
+05:00 UTC that sends POST &lt;PUBLIC_API_URL&gt;/api/wear/sync-all with header x-cron-key read from the WEAR_CRON_KEY environment variable
+at run time (never written into code or the job). If Emergent has no scheduler, say so and stop. Change no app files.</pre></details>
+</div>
+
+<footer>
+  <span>Source of every line on this page: <a href="https://github.com/Mc-Lovin-Creator/threshold/blob/performance-lab-os/deploy/PASTE.md" target="_blank" rel="noopener">deploy/PASTE.md</a> · start file <a href="https://github.com/Mc-Lovin-Creator/threshold/blob/performance-lab-os/EMERGENT_START.md" target="_blank" rel="noopener">EMERGENT_START.md</a> · stages <a href="https://github.com/Mc-Lovin-Creator/threshold/tree/performance-lab-os/deploy" target="_blank" rel="noopener">deploy/</a></span>
+  <span>Ticks are remembered in this browser only.</span>
+</footer>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const KEY = 'perfops-launch-done';
+  let done = {}; try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
+  const paint = () => {
+    let n = 0; for (let i = 1; i <= 6; i++) { const on = !!done['d' + i]; $('#d' + i).checked = on; $('#r' + i).classList.toggle('done', on); if (on) n++; }
+    $('#count').textContent = n + ' / 6'; $('#bar').style.width = (n / 6 * 100) + '%';
+  };
+  $$('.done-t input').forEach(cb => cb.addEventListener('change', () => { done[cb.id] = cb.checked; try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) { } paint(); }));
+  paint();
+
+  const flash = (btn, txt) => { const t = btn.textContent; btn.textContent = txt; btn.classList.add('copied'); setTimeout(() => { btn.textContent = t; btn.classList.remove('copied'); }, 1400); };
+  const copy = (text, btn, selectEl) => {
+    try { navigator.clipboard.writeText(text).then(() => flash(btn, 'Copied'), () => fallback()); } catch (e) { fallback(); }
+    function fallback() { if (selectEl) { const r = document.createRange(); r.selectNodeContents(selectEl); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } flash(btn, 'Selected: press Ctrl/Cmd+C'); }
+  };
+  $$('[data-copy]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); const el = document.getElementById(b.dataset.copy); copy(el.textContent, b, el); }));
+
+  // Keys: made here with crypto.getRandomValues; kept only in this variable; never stored or sent.
+  const KEYS = {};
+  const rand = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return a; };
+  const b64url = (bytes, pad) => { let s = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_'); return pad ? s : s.replace(/=+$/, ''); };
+  $('#make').addEventListener('click', () => {
+    if (Object.keys(KEYS).length && $('#make').dataset.sure !== '1') { $('#make').dataset.sure = '1'; $('#make').textContent = 'Make new keys? Press again'; setTimeout(() => { $('#make').dataset.sure = ''; $('#make').textContent = 'Make new keys'; }, 3000); return; }
+    KEYS.JWT_SECRET = b64url(rand(48), false);      // like Python secrets.token_urlsafe(48)
+    KEYS.FIELD_KEY = b64url(rand(32), true);        // Fernet key: url-safe base64 of 32 bytes, padded
+    KEYS.SETUP_TOKEN = b64url(rand(40), false);
+    $$('.krow').forEach(r => { r.classList.remove('shown'); r.querySelector('output').textContent = '•'.repeat(24) + '  made · ' + KEYS[r.dataset.k].length + ' characters'; r.querySelector('[data-show]').textContent = 'Show'; });
+    $('#make').dataset.sure = ''; $('#make').textContent = 'Make new keys';
+  });
+  $$('.krow [data-show]').forEach(b => b.addEventListener('click', () => {
+    const r = b.closest('.krow'), k = KEYS[r.dataset.k]; if (!k) return;
+    const on = !r.classList.contains('shown'); r.classList.toggle('shown', on);
+    r.querySelector('output').textContent = on ? k : '•'.repeat(24) + '  made · ' + k.length + ' characters'; b.textContent = on ? 'Hide' : 'Show';
+  }));
+  $$('.krow [data-copyk]').forEach(b => b.addEventListener('click', () => {
+    const r = b.closest('.krow'), k = KEYS[r.dataset.k]; if (!k) return flash(b, 'Make keys first');
+    if (!r.classList.contains('shown')) { r.classList.add('shown'); r.querySelector('output').textContent = k; r.querySelector('[data-show]').textContent = 'Hide'; }
+    copy(k, b, r.querySelector('output'));
+  }));
+})();
+</script>

@@ -6,14 +6,14 @@ This is the starting file for Emergent. The GitHub repo is the master copy: ever
 
 - Repo: `Mc-Lovin-Creator/threshold`, branch `performance-lab-os`
 - Emergent project name: **Performance Ops** (staging first: `performance-ops-staging`)
-- **Every prompt to paste, in order:** [`deploy/PASTE.md`](deploy/PASTE.md)
+- **Every prompt to paste, in order:** [`deploy/PASTE.md`](deploy/PASTE.md), or the [launch pad](https://claude.ai/artifact/XyLFv32Da3TUm6iFPy1p7X) with copy buttons
 - Step-by-step stages, from first import to go-live: [`deploy/README.md`](deploy/README.md)
 - Rules for Emergent's agent: [`deploy/EMERGENT_RULES.md`](deploy/EMERGENT_RULES.md)
 - Progress: [`deploy/STATUS.md`](deploy/STATUS.md)
 
 ## Before you paste the prompt
 
-1. Make the keys: on the launch pad page choose **Make keys** (runs in your browser only), or on a computer with the repo run `python3 scripts/gen_keys.py`. Save them in your password manager as "Performance Ops: staging".
+1. Make the keys: on the [launch pad](https://claude.ai/artifact/XyLFv32Da3TUm6iFPy1p7X) choose **Make keys** (runs in your browser only), or on a computer with the repo run `python3 scripts/gen_keys.py`. Save them in your password manager as "Performance Ops: staging".
 2. In Emergent, import the repo, branch `performance-lab-os`. Name the project **Performance Ops**.
 3. In the project's backend environment settings, type these in yourself:
 

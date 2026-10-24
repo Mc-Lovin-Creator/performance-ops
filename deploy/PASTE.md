@@ -5,14 +5,14 @@
 Work down the page. Each step has one short "you do" line and, where needed, one block to copy into Emergent's chat.
 
 - **Secrets:** you type them only into Emergent's **environment settings**, never into the chat.
-- **Interactive version:** the launch pad page has copy buttons and makes the keys in your browser.
+- **Interactive version:** the [launch pad](https://claude.ai/artifact/XyLFv32Da3TUm6iFPy1p7X) has copy buttons and makes the keys in your browser (a copy is in [`launch-pad.html`](launch-pad.html)).
 - **Detail for each stage:** [`stages/`](stages/)
 
 ---
 
 ## 1 · Make the keys
 
-**You do:** open the launch pad and choose **Make keys**, or on a computer with the repo run `python3 scripts/gen_keys.py`. Save the three values in your password manager as "Performance Ops: staging".
+**You do:** open the [launch pad](https://claude.ai/artifact/XyLFv32Da3TUm6iFPy1p7X) and choose **Make keys**, or on a computer with the repo run `python3 scripts/gen_keys.py`. Save the three values in your password manager as "Performance Ops: staging".
 
 ## 2 · Import the repo
 
