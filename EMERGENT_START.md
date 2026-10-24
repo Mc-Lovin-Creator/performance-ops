@@ -4,7 +4,7 @@
 
 This is the starting file for Emergent. The GitHub repo is the master copy: every change is made in the repo and pulled into Emergent, never only inside Emergent.
 
-- Repo: `Mc-Lovin-Creator/threshold`, branch `performance-lab-os`
+- Repo: `Mc-Lovin-Creator/performance-ops`, branch `main`
 - Emergent project name: **Performance Ops** (staging first: `performance-ops-staging`)
 - **Every prompt to paste, in order:** [`deploy/PASTE.md`](deploy/PASTE.md), or the [launch pad](https://claude.ai/artifact/XyLFv32Da3TUm6iFPy1p7X) with copy buttons
 - Step-by-step stages, from first import to go-live: [`deploy/README.md`](deploy/README.md)
@@ -14,7 +14,7 @@ This is the starting file for Emergent. The GitHub repo is the master copy: ever
 ## Before you paste the prompt
 
 1. Make the keys: on the [launch pad](https://claude.ai/artifact/XyLFv32Da3TUm6iFPy1p7X) choose **Make keys** (runs in your browser only), or on a computer with the repo run `python3 scripts/gen_keys.py`. Save them in your password manager as "Performance Ops: staging".
-2. In Emergent, import the repo, branch `performance-lab-os`. Name the project **Performance Ops**.
+2. In Emergent, import the repo, branch `main`. Name the project **Performance Ops**.
 3. In the project's backend environment settings, type these in yourself:
 
    | Variable | Value |
@@ -43,7 +43,7 @@ Task (stage 1):
 4. Restart both services, run:  python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1
    and paste its full output. Tell me the public preview URL and whether it shows the Performance Ops sign-in screen.
 Do not create accounts, keys, passwords or test data. Do not change any file. If you think a file must change, explain why and wait.
-If anything is ever changed, use Save to GitHub on a new branch named emergent/<yyyy-mm-dd>-<short-name>, never performance-lab-os.
+If anything is ever changed, use Save to GitHub on a new branch named emergent/<yyyy-mm-dd>-<short-name>, never main.
 ```
 
 ## Then

@@ -17,7 +17,7 @@ Work down the page. Each step has one short "you do" line and, where needed, one
 ## 2 · Import the repo
 
 **You do:**
-- In Emergent, start a new project by importing from GitHub: `Mc-Lovin-Creator/threshold`, branch `performance-lab-os`, project name **Performance Ops**.
+- In Emergent, start a new project by importing from GitHub: `Mc-Lovin-Creator/performance-ops`, branch `main`, project name **Performance Ops**.
 - In the backend environment settings, add:
   - `JWT_SECRET`, `FIELD_KEY`, `SETUP_TOKEN` (from step 1)
   - `REQUIRE_2FA_P1` = `1`
@@ -88,7 +88,7 @@ documentation: is the database backed up, how often, how long backups are kept, 
 **You do:** wait for the green tick on GitHub (Actions), then paste:
 
 ```
-Read deploy/EMERGENT_RULES.md. Pull the latest commit from GitHub branch performance-lab-os. Reinstall dependencies only if
+Read deploy/EMERGENT_RULES.md. Pull the latest commit from GitHub branch main. Reinstall dependencies only if
 backend/requirements.txt or frontend/package.json changed. Restart backend and frontend. Report the commit hash you are running and
 paste the output of: python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1
 Change nothing else.
@@ -107,7 +107,7 @@ Change nothing else. (The database is not rolled back; only the code.)
 ```
 Read deploy/EMERGENT_RULES.md. Before changing anything, list the files you want to change and why, and wait for my yes. Then make
 only those changes, run npm test (or at least python3 app/build.py, node tests/static_checks.mjs and cd backend && python -m pytest -q),
-and use Save to GitHub on a NEW branch named emergent/<yyyy-mm-dd>-<short-name>, never on performance-lab-os. Report the branch name.
+and use Save to GitHub on a NEW branch named emergent/<yyyy-mm-dd>-<short-name>, never on main. Report the branch name.
 ```
 
 **Then:** ask Claude to review and merge that branch.

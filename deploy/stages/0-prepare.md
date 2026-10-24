@@ -4,12 +4,12 @@
 
 ## You do
 
-1. **Check the repo is healthy.** On GitHub, open `Mc-Lovin-Creator/threshold`, switch to branch **`performance-lab-os`**, then open **Actions**. The latest run should have a green tick. If it is red, ask Claude to fix it first.
-2. **Link GitHub to Emergent.** In Emergent, open your profile, then GitHub, and connect. Allow access to `Mc-Lovin-Creator/threshold`.
+1. **Check the repo is healthy.** On GitHub, open `Mc-Lovin-Creator/performance-ops` (branch **`main`**), then open **Actions**. The latest run should have a green tick. If it is red, ask Claude to fix it first.
+2. **Link GitHub to Emergent.** In Emergent, open your profile, then GitHub, and connect. Allow access to `Mc-Lovin-Creator/performance-ops`.
 3. **Get the repo on your computer.** You need it to run the key, set-up and check scripts.
    ```bash
-   git clone -b performance-lab-os https://github.com/Mc-Lovin-Creator/threshold.git performance-lab-os
-   cd performance-lab-os
+   git clone https://github.com/Mc-Lovin-Creator/performance-ops.git
+   cd performance-ops
    ```
    (Or on GitHub choose Code, then Download ZIP, and unzip it.)
 4. **Make the server keys** on your computer:
@@ -24,8 +24,8 @@
 
 ## Done when
 
-- [ ] Green tick on the latest CI run of `performance-lab-os`
-- [ ] Emergent shows the `threshold` repo when importing
+- [ ] Green tick on the latest CI run of `main`
+- [ ] Emergent shows the `performance-ops` repo when importing
 - [ ] Staging keys saved in your password manager
 
 Then tick stage 0 in `deploy/STATUS.md`.

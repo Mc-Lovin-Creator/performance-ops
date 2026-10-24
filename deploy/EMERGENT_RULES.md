@@ -17,6 +17,6 @@ Paste-in prompts tell the agent to read this file first. Keep it short and stric
 6. **No default accounts, passwords or codes.** Accounts are created only through `scripts/first_lead.py` and the Account screen.
 7. **No real patient data.** It is demo data only until the owner says stage 6 is signed off.
 8. **No clinical data in any AI prompt or third-party service.**
-9. **Saving work:** if you change any file, use **Save to GitHub** on a new branch named `emergent/<yyyy-mm-dd>-<short-name>`, never on `performance-lab-os`. Then list every file you changed and why.
+9. **Saving work:** if you change any file, use **Save to GitHub** on a new branch named `emergent/<yyyy-mm-dd>-<short-name>`, never on `main`. Then list every file you changed and why.
 10. **Before saving:** run `npm test` (or at least `python3 app/build.py`, `node tests/static_checks.mjs` and `cd backend && python -m pytest -q`) and report the result.
 11. **If something fails:** report the exact error and stop. Do not work around security checks (two-step sign-in, consent, roles, CORS, encryption).

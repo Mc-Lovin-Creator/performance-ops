@@ -4,7 +4,7 @@
 
 ## You do
 
-1. In Emergent, start a new project by **importing from GitHub**: repo `Mc-Lovin-Creator/threshold`, branch **`performance-lab-os`**.
+1. In Emergent, start a new project by **importing from GitHub**: repo `Mc-Lovin-Creator/performance-ops`, branch **`main`**.
 2. Open the project's **environment variables** for the backend (often under Settings, Environment, or Deployment, Secrets) and add **yourself**:
 
    | Name | Value |

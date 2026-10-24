@@ -1,6 +1,6 @@
 # Deployment status
 
-Edit this file as you go (on GitHub: pencil icon, then commit to `performance-lab-os`). One line per stage. Never write keys or passwords here.
+Edit this file as you go (on GitHub: pencil icon, then commit to `main`). One line per stage. Never write keys or passwords here.
 
 | Stage | Status | Date | Commit or tag | Notes |
 | --- | --- | --- | --- | --- |

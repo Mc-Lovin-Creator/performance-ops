@@ -4,7 +4,7 @@
 
 **The GitHub repo is the master copy. Emergent only runs it.** Every change is made here, in the repo, and then pulled into Emergent. Nothing is changed only inside Emergent, so you can always edit, review, roll back and move host without losing work.
 
-- **Repo:** `github.com/Mc-Lovin-Creator/threshold`, branch **`performance-lab-os`**
+- **Repo:** `github.com/Mc-Lovin-Creator/performance-ops`, branch **`main`**
 - **Progress tracker:** [`STATUS.md`](STATUS.md). Tick each stage as you finish it.
 - **How to make a change after go-live:** [`CHANGES.md`](CHANGES.md)
 - **Rules for Emergent's agent** (every prompt below points to them): [`EMERGENT_RULES.md`](EMERGENT_RULES.md)
