@@ -37,8 +37,14 @@ def main():
     pub = ROOT / "frontend" / "public"
     pub.mkdir(parents=True, exist_ok=True)
     head = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
-            '<meta name="robots" content="noindex,nofollow"><script>window.PLOS_API="%REACT_APP_BACKEND_URL%";</script></head><body>')
+            '<meta name="robots" content="noindex,nofollow"><title>Performance Ops</title>'
+            '<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b0d12">'
+            '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">'
+            '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Performance Ops">'
+            '<link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><script>window.PLOS_API="%REACT_APP_BACKEND_URL%";</script></head><body>')
     (pub / "index.html").write_text(head + page + "</body></html>", encoding="utf-8")
+    for f in (ASSETS / "pwa").glob("*"):   # installable on phones (home-screen icon, full screen); no service worker, so nothing clinical is cached offline
+        shutil.copy(f, pub / f.name)
     for f in ASSETS.glob("*.txt"):
         shutil.copy(f, pub / f.name)
         shutil.copy(f, dist / f.name)

@@ -12,3 +12,5 @@ frontend/public/*.txt
 app/assets/img/
 *.csv
 *.xlsx
+frontend/public/*.png
+frontend/public/*.webmanifest
