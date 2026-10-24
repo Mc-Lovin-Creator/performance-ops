@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "app" / "src"
 ASSETS = ROOT / "app" / "assets"
 # modules inserted, in order, where app.js marks /* ---------- search ---------- */
-ORDER = ["anatdb", "return", "hub", "p1hub", "team", "anatui", "edudata", "norms", "edu", "agents", "cinema", "p1load", "vault", "ops", "squad", "audit",
+ORDER = ["anatdb", "return", "hub", "p1hub", "team", "anatui", "edudata", "norms", "anatdb2", "anatdb3", "edu", "agents", "cinema", "p1load", "vault", "ops", "squad", "audit",
          "members", "fun", "labs", "book", "chapters", "story", "fascia3d", "holo", "motion", "explainers", "focus", "consent", "opencap", "wear", "pilot", "sync"]
 MARK = "/* ---------- search ---------- */"
 

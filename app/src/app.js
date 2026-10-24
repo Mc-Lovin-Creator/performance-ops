@@ -455,10 +455,11 @@ function anatomyRight() {
   if (AN.sel) {
     const li = LABI(AN.sel); const d = DB[KEY(AN.sel)] ? Object.assign({}, DB[KEY(AN.sel)], li ? { name: li.name.replace(/^(right|left) /, '').replace(/^./, c => c.toUpperCase()) } : {}) : { name: li ? li.name.replace(/^(right|left) /, '').replace(/^./, c => c.toUpperCase()) : AN.sel, kind: li ? li.kind : 'Structure', region: li && window.AnatomyLab && AnatomyLab.regions ? (AnatomyLab.regions()[li.region] || '') : '', what: li && typeof TISSUE_LABEL !== 'undefined' ? TISSUE_LABEL[li.kind] || '' : '', note: 'Full clinical card not written yet. Shape and position are from the Z-Anatomy atlas (cadaver-derived BodyParts3D scans).' };
     const LBL = { Ligament: ['Attaches above', 'Attaches below', 'Function'], Tendon: ['From', 'Inserts', 'Function'], Fascia: ['Attaches', 'Links', 'Function'], Artery: ['Arises from', 'Ends as', 'Supplies'], Vein: ['Begins', 'Drains into', 'Drains'], Nerve: ['From', 'Supplies', 'Function'] }[d.kind] || ['Origin', 'Insertion', 'Action'];
-    const rows = [['What it is', d.what], ['Region', d.region], [LBL[0], d.o], [LBL[1], d.i], [LBL[2], d.a], ['Nerve supply', d.n], ['Injuries', d.inj], ['Tests', d.tests], ['Rehab', d.rehab], ['Padel', d.padel]].filter(r => r[1]);
+    const rows = [['What it is', d.what], ['Group', d.group], ['Region', d.region], [LBL[0], d.o], [LBL[1], d.i], [LBL[2], d.a], ['Nerve supply', d.n], ['Injuries', d.inj], ['Tests', d.tests], ['Rehab', d.rehab], ['Padel', d.padel]].filter(r => r[1]);
+    const srcs = [...new Set(['grays'].concat(d.src || []))].filter(k => SRC[k]);
     return `<div class="stack"><span class="eyebrow">${esc(d.kind)}${SIDE(AN.sel) ? ' · ' + SIDE(AN.sel) : ''}</span><h2 class="serif" style="font-size:30px;font-weight:400;letter-spacing:-.3px">${esc(d.name)}</h2>
       <div class="pills"><button class="btn sm" data-act="isolate">Isolate</button><button class="btn sm" data-act="hide">Hide</button><button class="btn sm" data-av="ghost" aria-pressed="${AnatomyLab.get().ghost}">Ghost others</button><button class="btn sm" data-act="focusSel">Zoom</button><button class="btn sm" data-act="showall">Show all</button></div>${LABI(AN.sel) && LABI(AN.sel).region !== undefined ? `<span class="muted" style="font-size:12.5px">${esc(AnatomyLab.regions()[LABI(AN.sel).region])} · ${esc(LABI(AN.sel).kind)}</span>` : ''}
-      ${anAttachHTML(AN.sel)}<div class="facts">${rows.map(r => `<div><span>${r[0]}</span><span>${esc(r[1])}</span></div>`).join('')}</div>${d.note ? `<p class="muted" style="margin:0;font-size:13px">${esc(d.note)}</p>` : ''}
+      ${anAttachHTML(AN.sel)}<div class="facts">${rows.map(r => `<div><span>${r[0]}</span><span>${esc(r[1])}</span></div>`).join('')}</div>${d.note ? `<p class="muted" style="margin:0;font-size:13px">${esc(d.note)}</p>` : ''}${DB[KEY(AN.sel)] ? `<p class="lab-src" style="margin:0">${srcs.map(srcLink).join(' · ')}</p>` : ''}
       ${perm().clinical ? `<button class="btn primary" data-act="tonote">Add to Player 1 note</button>` : ''}</div>`;
   }
   return `<div class="stack"><span class="eyebrow">Live</span><h3>Most active muscles</h3><div class="rows" id="an-top"><div class="row muted">Pick a movement to see activation.</div></div>
@@ -497,7 +498,7 @@ function mountAnatomy() {
   if (window.AnatomyLab) go(); else window.addEventListener('anatomy-ready', go, { once: true });
 }
 function startQuiz() {
-  const ids = Object.keys(DB).filter(k => DB[k].kind === 'Muscle' || DB[k].kind === 'Ligament' || DB[k].kind === 'Tendon').map(k => k + '_R').filter(id => !AnatomyLab.resolve || AnatomyLab.resolve(id));
+  const ids = Object.keys(DB).filter(k => !DB[k].group && (DB[k].kind === 'Muscle' || DB[k].kind === 'Ligament' || DB[k].kind === 'Tendon')).map(k => k + '_R').filter(id => !AnatomyLab.resolve || AnatomyLab.resolve(id));
   const id = ids[Math.floor(Math.random() * ids.length)];
   const opts = new Set([id]); while (opts.size < 4) opts.add(ids[Math.floor(Math.random() * ids.length)]);
   AN.quiz = { id, options: [...opts].sort(() => Math.random() - 0.5), answered: false };
