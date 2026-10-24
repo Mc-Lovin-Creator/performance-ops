@@ -17,4 +17,10 @@ const oura = w.wearParse('date,Total Sleep Duration,Average HRV,Lowest Resting H
 eq([oura.n, oura.src, oura.days['2026-10-20'].sleep, oura.days['2026-10-21'].hrv], [2, 'Oura', 7.5, 58], 'Oura CSV: seconds of sleep become hours');
 const apple = w.wearParse('Date;Heart Rate Variability (ms);Resting Heart Rate (count/min);Sleep Analysis [Asleep] (hr)\n2026-10-20;55;52;7.2\n');
 eq([apple.src, apple.days['2026-10-20'].rhr, apple.days['2026-10-20'].sleep], ['Apple Health', 52, 7.2], 'Apple Health CSV with semicolons');
+const dr = load('docread.js', 'docSummarise,docSummaryText', { esc: x => x, window: {} });
+const mri = dr.docSummarise([['MRI RIGHT FOOT', 'Date: 12/01/2026', 'Clinical details: medial arch pain in a padel player.', 'Findings:', 'There is a partial thickness tear of the spring ligament with surrounding oedema.', 'The tibialis posterior tendon is intact.', 'Impression:', 'Grade 2 sprain of the spring ligament. Recommend conservative management and review in 6 weeks.']]);
+eq([mri.type, mri.dates[0], /Grade 2 sprain/.test(mri.sections.impression), /partial thickness tear/.test(mri.sections.finding)], ['Imaging report', '12/01/2026', true, true], 'PDF summary: imaging type, date, impression and findings');
+const labs = dr.docSummarise([['Ferritin 18 ug/L (30-400) L', 'Haemoglobin 145 g/L (130-170)', 'Vitamin D 25-OH 38 nmol/L (50-125)', 'Creatine kinase 820 U/L H']]);
+eq([labs.type, labs.flags.map(f => f.test + ' ' + f.dir)], ['Lab results', ['Ferritin low', 'Vitamin D 25-OH low', 'Creatine kinase high']], 'PDF summary: out-of-range results flagged, normal ones left out');
+eq(/Ferritin 18 ug\/L \(range 30–400\) low/.test(dr.docSummaryText(labs)), true, 'PDF summary text lists flagged results');
 if (fail) process.exit(1); console.log('unit tests passed');

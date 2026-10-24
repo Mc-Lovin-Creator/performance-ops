@@ -178,6 +178,16 @@ class Records(unittest.TestCase):
         ok = self.c.patch("/api/state/daily/records", headers=ol, json={"kind": "map", "changes": {"d1": {"pain": 5}}, "base": {"d1": 1}})
         self.assertEqual(ok.json()["value"]["d1"], {"pain": 5})
 
+    def test_records_vault_keys(self):
+        """The vault's ciphertext syncs record by record; coaches cannot read it and Player 1's vault needs the Player 1 flag."""
+        self.assertFalse(can_read(User("3", "c", "coach", "javi", False), "emr"))
+        self.assertTrue(can_read(User("2", "p2", "physio", "physio2", False), "emr"))
+        self.assertFalse(can_read(User("2", "p2", "physio", "physio2", False), "p1emr"))
+        h = login(self.c, "olivia@lab.test")
+        r = self.c.patch("/api/state/emr/records", headers=h, json={"kind": "map", "changes": {"r1": {"pid": "PT-AAAA", "kind": "doc", "iv": "x", "ct": "y"}}, "base": {}})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertIn("sealed", self.store.state[("shared", "emr")])
+
     def test_list_records_and_delete(self):
         h = login(self.c, "olivia@lab.test")
         self.c.patch("/api/state/assess/records", headers=h, json={"kind": "list", "changes": {"a": {"id": "a", "x": 1}, "b": {"id": "b", "x": 2}}, "base": {}})

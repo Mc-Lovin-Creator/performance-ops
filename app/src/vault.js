@@ -1,16 +1,21 @@
 /* ---------- Records vault: an encrypted patient record. Everything clinical is encrypted in the browser (AES-256-GCM, key from a team passphrase via PBKDF2-SHA-256, 310,000 rounds) before it is saved; the store only ever holds ciphertext. Every unlock, open, save, sign and amendment is written to the audit log by patient code, never by name. ---------- */
-const VAULT = { key: null, meta: undefined, lockAt: 0, idleMs: 10 * 60 * 1000, patients: [], recs: [], sel: null, tab: 'notes', edit: null, q: '', busy: false, err: '', mem: {}, audit: [] };
+const VAULT = { scope: '', key: null, meta: undefined, lockAt: 0, idleMs: 10 * 60 * 1000, patients: [], recs: [], sel: null, tab: 'notes', edit: null, q: '', busy: false, err: '', mem: {}, audit: [] };
 const V_IT = 310000;
 const vb64 = buf => { const b = new Uint8Array(buf); let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
 const vub64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const vRole = () => ['lead', 'biokineticist', 'physio', 'physician'].includes(me().role);
 /* storage adapter: the artifact's shared store when present, otherwise memory (demo) */
+/* On the team server (signed in) each collection is one store key, synced record by record; the server keeps it in the
+   clinic scope, or the Player 1 scope for his vault, and encrypts it at rest a second time. Player 1 has his own vault and passphrase. */
+const VKEY = { vault: 'vmeta', emr_patients: 'emr_patients', emr: 'emr', audit: 'vaudit' };
+const vSync = () => { try { return typeof SYNC !== 'undefined' && SYNC.on; } catch (e) { return false; } };
+const vk = col => (VAULT.scope === 'p1' ? 'p1' : '') + VKEY[col];
 const VDB = {
-  live: () => !!(typeof AG !== 'undefined' && AG.cap && AG.cap.db && AG.cap.db.collection),
-  async get(col, id) { if (this.live()) { const s = await AG.cap.db.doc(col + '/' + id).get(); return s.exists ? s.data() : null; } return (VAULT.mem[col] || {})[id] || null; },
-  async set(col, id, data) { if (this.live()) return AG.cap.db.doc(col + '/' + id).set(data); (VAULT.mem[col] = VAULT.mem[col] || {})[id] = JSON.parse(JSON.stringify(data)); },
+  live: () => vSync() || !!(typeof AG !== 'undefined' && AG.cap && AG.cap.db && AG.cap.db.collection),
+  async get(col, id) { if (vSync()) return (store.get(vk(col), {}) || {})[id] || null; if (this.live()) { const s = await AG.cap.db.doc(col + '/' + id).get(); return s.exists ? s.data() : null; } return (VAULT.mem[col] || {})[id] || null; },
+  async set(col, id, data) { if (vSync()) { const m = Object.assign({}, store.get(vk(col), {})); m[id] = JSON.parse(JSON.stringify(data)); store.set(vk(col), m); return; } if (this.live()) return AG.cap.db.doc(col + '/' + id).set(data); (VAULT.mem[col] = VAULT.mem[col] || {})[id] = JSON.parse(JSON.stringify(data)); },
   async add(col, data) { const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7); await this.set(col, id, data); return id; },
-  async list(col, n) { if (this.live()) { const s = await AG.cap.db.collection(col).orderBy('at', 'desc').limit(n || 500).get(); return s.docs.map(d => Object.assign({ id: d.id }, d.data())); } return Object.entries(VAULT.mem[col] || {}).map(([id, d]) => Object.assign({ id }, d)).sort((a, b) => (b.at || '').localeCompare(a.at || '')); }
+  async list(col, n) { if (vSync()) return Object.entries(store.get(vk(col), {}) || {}).map(([id, d]) => Object.assign({ id }, d)).sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, n || 500); if (this.live()) { const s = await AG.cap.db.collection(col).orderBy('at', 'desc').limit(n || 500).get(); return s.docs.map(d => Object.assign({ id: d.id }, d.data())); } return Object.entries(VAULT.mem[col] || {}).map(([id, d]) => Object.assign({ id }, d)).sort((a, b) => (b.at || '').localeCompare(a.at || '')); }
 };
 async function vKek(pass, salt) {
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
@@ -36,7 +41,7 @@ async function vUnlock(pass, fresh) {
   catch (e) { await vAudit('Failed unlock attempt'); throw new Error('That passphrase does not open the vault.'); }
   VAULT.lockAt = Date.now() + VAULT.idleMs; await vAudit(fresh ? 'Vault created and unlocked' : 'Vault unlocked'); await vRefresh();
 }
-function vLock(why) { VAULT.key = null; VAULT.patients = []; VAULT.recs = []; VAULT.sel = null; VAULT.edit = null; if (why) toast(why); if (['records', 'p1rec'].includes(S.route)) keepRender(); }
+function vLock(why) { VAULT.key = null; if (typeof DOCREAD !== 'undefined') DOCREAD.draft = null; VAULT.patients = []; VAULT.recs = []; VAULT.sel = null; VAULT.edit = null; if (why) toast(why); if (['records', 'p1rec'].includes(S.route)) keepRender(); }
 async function vNewPatient(d) { const id = vCode(); const env = await vEnc(Object.assign({ created: new Date().toISOString() }, d)); await VDB.set('emr_patients', id, Object.assign({ at: new Date().toISOString(), by: me().id }, env)); await vAudit('Created a record', id); await vRefresh(); VAULT.sel = id; VAULT.creating = false; }
 async function vRefresh() {
   if (!VAULT.key) return;
@@ -54,6 +59,7 @@ const vAge = d => { if (!d) return ''; const b = new Date(d), n = new Date(); le
 function pageRecords(scope) {
   const head = scope === 'p1' ? p1Head('p1rec', 'Records', 'encrypted clinical record') : `<div class="sec-head"><div><span class="eyebrow">${lockIcon} Encrypted on this device · AES-256 · every opening logged</span><h1>Patient records</h1></div></div>`;
   if (!vRole()) return head + `<section class="panel"><p class="muted" style="margin:0">Records are open to the clinical team only.</p></section>`;
+  const sc = scope === 'p1' ? 'p1' : ''; if (VAULT.scope !== sc) { if (VAULT.key) vLock(); VAULT.scope = sc; VAULT.meta = undefined; VAULT.audit = []; }
   if (VAULT.meta === undefined) { vLoadMeta().then(() => keepRender()); return head + '<section class="panel"><p class="muted" style="margin:0">Opening the vault…</p></section>'; }
   if (!VAULT.key) return head + vLockScreen();
   return head + vWorkspace(scope);
@@ -81,7 +87,7 @@ function vWorkspace(scope) {
 }
 function vPatient(P) {
   const recs = VAULT.recs.filter(r => r.pid === P.id);
-  const tabs = [['notes', 'Notes', recs.filter(r => r.kind === 'note').length], ['injuries', 'Injuries', recs.filter(r => r.kind === 'injury').length], ['consent', 'Consent', recs.filter(r => r.kind === 'consent').length], ['audit', 'Access log', VAULT.audit.filter(a => a.target === P.id).length]];
+  const tabs = [['notes', 'Notes', recs.filter(r => r.kind === 'note').length], ['injuries', 'Injuries', recs.filter(r => r.kind === 'injury').length], ['consent', 'Consent', recs.filter(r => r.kind === 'consent').length], ['docs', 'Documents', recs.filter(r => r.kind === 'doc').length], ['audit', 'Access log', VAULT.audit.filter(a => a.target === P.id).length]];
   let body = '';
   if (VAULT.tab === 'notes') {
     const notes = recs.filter(r => r.kind === 'note');
@@ -94,6 +100,7 @@ function vPatient(P) {
     <div class="rows">${recs.filter(r => r.kind === 'injury').map(r => `<div class="row" style="font-size:13.5px"><span class="grow"><b>${esc(r.structure)}</b> · ${esc(r.side)} · grade ${esc(r.grade)}<br><span class="muted">${esc(r.mechanism || '')}${r.onset ? ' · onset ' + esc(r.onset) : ''}</span></span><span class="chip ${r.status === 'Resolved' ? 'c-ok' : r.status === 'Rehab' ? 'c-warn' : 'c-risk'}">${esc(r.status)}</span>${(DB[(r.structure || '').toLowerCase().replace(/ /g, '_')]) ? '' : ''}</div>`).join('')}</div>`;
   if (VAULT.tab === 'consent') body = `<form class="panel vform2" data-v="addcon"><h3>Record consent</h3><div class="grid3" style="gap:12px"><label class="field">Consent for<select name="type"><option>Assessment and treatment</option><option>Data storage in this app</option><option>Sharing with coaches</option><option>Photos and video</option><option>Research use, anonymised</option></select></label><label class="field">Given<select name="given"><option>Yes</option><option>No</option><option>Withdrawn</option></select></label><label class="field">Date<input name="date" type="date" required></label></div><button class="btn primary" type="submit">Save encrypted</button></form>
     <div class="rows">${recs.filter(r => r.kind === 'consent').map(r => `<div class="row" style="font-size:13.5px"><span class="grow"><b>${esc(r.type)}</b><br><span class="muted">${esc(r.date)} · recorded by ${esc(r.author || '')}</span></span><span class="chip ${r.given === 'Yes' ? 'c-ok' : 'c-risk'}">${esc(r.given)}</span></div>`).join('')}</div>`;
+  if (VAULT.tab === 'docs') body = docPanel() + `<div class="rows">${recs.filter(r => r.kind === 'doc').map(r => `<details class="panel vnote"><summary><b>${esc(r.title)}</b> <span class="muted" style="font-size:12.5px">· ${esc(r.type || '')} · ${r.pages || '?'} page${r.pages == 1 ? '' : 's'} · ${new Date(r.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${esc(r.author || '')}</span></summary><p style="white-space:pre-wrap;font-size:13.5px">${esc(r.summary)}</p><p class="muted" style="font-size:12px;margin:0">Summary only. The original PDF was read on this device and not kept (fingerprint ${esc(r.fp || '')}).</p></details>`).join('') || '<p class="muted" style="font-size:13px">No document summaries yet.</p>'}</div>`;
   if (VAULT.tab === 'audit') body = `<div class="rows">${VAULT.audit.filter(a => a.target === P.id || a.target === '').slice(0, 40).map(a => `<div class="row" style="font-size:13px"><span class="grow"><b>${esc(a.action)}</b>${a.target ? ' · ' + esc(a.target) : ''}</span><span class="muted">${esc(a.who || '')}</span><span class="muted num">${new Date(a.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')}</div><p class="muted" style="font-size:12.5px;margin:0">The log stores the patient code only, never the name.</p>`;
   return `<header class="vhead"><span class="av av-lg">${esc((P.name || '?').split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase())}</span><div class="grow"><h2>${esc(P.name || 'Unnamed')}</h2><span class="muted">${P.id}${P.dob ? ' · ' + vAge(P.dob) : ''}${P.sport ? ' · ' + esc(P.sport) : ''}${P.athlete === 'p1' ? ' · Player 1' : ''}</span></div><span class="chip plain c-muted">${lockIcon} Encrypted</span></header>
     <nav class="seg" aria-label="Record sections">${tabs.map(([k, l, n]) => `<button data-v="tab" data-arg="${k}" aria-pressed="${VAULT.tab === k}">${l}${n ? ` <span class="num muted">${n}</span>` : ''}</button>`).join('')}</nav><div class="stack" style="gap:14px">${body}</div>`;
@@ -114,6 +121,8 @@ document.addEventListener('submit', async e => {
       const env = await vEnc(data), meta = { pid: P, kind: 'note', at: VAULT.edit && VAULT.edit.id ? VAULT.edit.at : new Date().toISOString(), by: me().id, signed: false, amends: VAULT.edit && VAULT.edit.amends || null };
       if (VAULT.edit && VAULT.edit.id) await VDB.set('emr', VAULT.edit.id, Object.assign(meta, env)); else await VDB.add('emr', Object.assign(meta, env));
       await vAudit(VAULT.edit && VAULT.edit.amends ? 'Amended a note' : VAULT.edit && VAULT.edit.id ? 'Edited a draft note' : 'Created a note', P); VAULT.edit = null; await vRefresh(); toast('Saved, encrypted'); }
+    else if (k === 'savedoc') { const d = Object.fromEntries(new FormData(f)); const env = await vEnc({ title: d.title, summary: d.summary, type: d.type, pages: +d.pages || null, fp: d.fp, author: me().name });
+      await VDB.add('emr', Object.assign({ pid: VAULT.sel, kind: 'doc', at: new Date().toISOString(), by: me().id }, env)); DOCREAD.draft = null; await vAudit('Saved a PDF summary (file not kept)', VAULT.sel); await vRefresh(); toast('Summary saved, encrypted. The PDF was not kept.'); }
     else if (k === 'addinj' || k === 'addcon') { const d = Object.fromEntries(new FormData(f)); const env = await vEnc(Object.assign(d, { author: me().name })); await VDB.add('emr', Object.assign({ pid: VAULT.sel, kind: k === 'addinj' ? 'injury' : 'consent', at: new Date().toISOString(), by: me().id }, env)); await vAudit(k === 'addinj' ? 'Added an injury' : 'Recorded consent', VAULT.sel); await vRefresh(); toast('Saved, encrypted'); }
   } catch (err) { VAULT.err = err.message || 'Something went wrong'; if (k === 'savenote' || k === 'addinj' || k === 'addcon') toast(VAULT.err); }
   VAULT.busy = false; keepRender();
@@ -130,6 +139,9 @@ document.addEventListener('click', async e => {
     if (k === 'editnote') VAULT.edit = VAULT.recs.find(r => r.id === a);
     if (k === 'amend') { const n = VAULT.recs.find(r => r.id === a); VAULT.edit = { amends: a, title: 'Amendment to ' + (n.title || 'note'), s: n.s, o: n.o, a: n.a, p: n.p }; }
     if (k === 'cancel') VAULT.edit = null;
+    if (k === 'docclear') { DOCREAD.draft = null; DOCREAD.err = ''; }
+    if (k === 'docread') { const inp = document.getElementById('doc-file'), file = inp && inp.files && inp.files[0]; DOCREAD.err = ''; DOCREAD.busy = true; keepRender();
+      try { DOCREAD.draft = await docRead(file); await vAudit('Read a PDF on this device', VAULT.sel); } catch (err) { DOCREAD.err = err.message || 'Could not read that PDF'; } finally { DOCREAD.busy = false; if (inp) inp.value = ''; } }
     if (k === 'cancelp') VAULT.creating = false;
     if (k === 'sign') { const n = VAULT.recs.find(r => r.id === a); const { id, pid, kind, at, by, signed, signedAt, amends, ...body } = n; const env = await vEnc(body); await VDB.set('emr', a, Object.assign({ pid, kind, at, by, amends: amends || null, signed: true, signedAt: new Date().toISOString(), signedBy: me().id }, env)); await vAudit('Signed a note', pid); await vRefresh(); toast('Signed. The note is now read-only; changes are made as amendments.'); }
   } catch (err) { toast(err.message || 'Could not do that'); }
