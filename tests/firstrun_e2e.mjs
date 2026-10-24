@@ -13,6 +13,7 @@ try {
   await p.route(/^https:\/\/(fonts|cdn)\./, x => x.abort());
   await p.goto('http://localhost:8022/'); await p.waitForSelector('.first-lead', { timeout: 10000 });
   check((await p.textContent('.first-lead')).includes('We keep punching above our weight.'), 'first-run screen with the slogan');
+  check(!(await p.isVisible('.login-c:not(.first-lead)')), 'plain sign-in form hidden while set-up is open');
   const pw = 'first-lead-' + Date.now();
   await p.fill('.first-lead input[name=setup_token]', 'wrong-key-wrong-key-wrong-key-wrong-key');
   await p.fill('.first-lead input[name=email]', 'jp@lab.test'); await p.fill('.first-lead input[name=password]', pw); await p.fill('.first-lead input[name=again]', pw);

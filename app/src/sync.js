@@ -81,13 +81,13 @@ const SYNC = (() => {
       <label class="field">New password (12+ characters)<input name="password" type="password" minlength="12" required autocomplete="new-password"></label>
       <label class="field">Again<input name="again" type="password" minlength="12" required autocomplete="new-password"></label><p class="login-err" hidden></p>
       <button class="btn primary" type="submit">Create lead account</button>`;
-    c.hidden = true; c.parentNode.insertBefore(f, c);
+    c.style.display = 'none'; c.parentNode.insertBefore(f, c);
     f.addEventListener('submit', async e => {
       e.preventDefault(); const d = new FormData(f), er = f.querySelector('.login-err'), show = m => { er.hidden = false; er.textContent = m; };
       if (d.get('password') !== d.get('again')) return show('The two passwords differ');
       const r = await req('POST', '/setup/first-lead', { setup_token: d.get('setup_token'), email: d.get('email'), person: d.get('person'), password: d.get('password') });
       if (!r.ok) return show(r.status === 403 ? 'Wrong set-up key' : r.status === 404 ? 'Set-up is closed: an account already exists' : (r.body.error || 'Not created'));
-      const em = d.get('email'); f.remove(); c.hidden = false; const n = c.querySelector('input[name=email]'); if (n) n.value = em;
+      const em = d.get('email'); f.remove(); c.style.display = ''; const n = c.querySelector('input[name=email]'); if (n) n.value = em;
       const p = document.createElement('p'); p.className = 'login-ok'; p.textContent = 'Lead account created. Now remove SETUP_TOKEN in Emergent, then sign in.'; c.insertBefore(p, c.querySelector('label'));
     });
   }
