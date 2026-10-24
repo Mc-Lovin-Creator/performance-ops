@@ -1,7 +1,8 @@
 /* ---------- Consent per athlete: what they agreed to, who recorded it and when. Clinicians only. ---------- */
 const CONSENT_ITEMS = [['care', 'Health data for care', 'Recording assessments, treatment, load and tests to plan care'], ['physician', 'Sharing with the team physician', 'Daily clinical updates go to the physician'],
   ['coach', 'Load summary to coaches', 'Coaches see load and availability, never clinical notes'], ['video', 'Video for movement analysis', 'Phone video turned into joint angles (OpenCap); clips deleted after processing'],
-  ['teach', 'Anonymised teaching use', 'Cases used in team education with no name or identifying detail']];
+  ['teach', 'Anonymised teaching use', 'Cases used in team education with no name or identifying detail'],
+  ['wear', 'Wearable data sync', 'Daily sleep, HRV and resting heart rate pulled from his own Oura, WHOOP, Polar, Garmin or Apple Health account; disconnect any time']];
 let CONSENT = store.get('consent', {});
 function consentCard(a) {
   if (!a || !perm().clinical) return '';

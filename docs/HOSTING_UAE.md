@@ -29,3 +29,4 @@ This is a checklist, not legal advice. Confirm every item with the Department of
 - [ ] AI tools: no clinical data in prompts (already enforced); data-processing terms signed before that ever changes
 - [ ] Incident response contact and DoH notification route written down
 - [ ] Penetration test or security review of the API
+- [ ] Wearables: provider apps registered, client secrets and `WEAR_CRON_KEY` / `GARMIN_PUSH_KEY` in the secret store, field names re-checked with a test account (`docs/WEARABLES.md`); provider data-processing terms filed

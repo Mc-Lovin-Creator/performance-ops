@@ -18,6 +18,8 @@ This repo is laid out the way Emergent runs projects: `frontend/` on port 3000 (
 - Every new clinical claim needs a source in `SRC` (`app/src/norms.js`) and an evidence grade. Claims without a scientific source are not added.
 - Run `npm test` before every commit.
 - Do not add default passwords, demo codes or keys anywhere in code or `.env.example`.
+- Wearable provider paths and field names live only in `backend/core/wearables.py`; change the fake in `backend/tests/test_wear.py` with them.
+- Schedule `POST /api/wear/sync-all` daily (header `x-cron-key`) once a provider is connected.
 
 ## API
 
@@ -31,10 +33,11 @@ This repo is laid out the way Emergent runs projects: `frontend/` on port 3000 (
 | GET, POST | /api/users | lead | list or add users |
 | PATCH | /api/users/{id} | lead | role, Player 1 flag, active, password |
 | GET | /api/audit | lead, manager | audit log |
+| GET, POST, DELETE | /api/wear/… | Player 1 clinicians, providers, scheduler | wearable connect, sync, push and ingest; see `docs/WEARABLES.md` |
 
 ## What is still to do
 
 - Decide hosting that meets DoH and ADHICS for patient data (UAE region, encryption at rest, backups, access reviews).
 - Move from whole-key state documents to per-record collections as volumes grow (the API already isolates this behind `core/store.py`).
-- Calendar sync and reminders for bookings; wearable imports; PadelOps workload link.
-- Two-factor sign-in for clinicians.
+- Calendar sync and reminders for bookings; PadelOps workload link.
+- Wearables: register provider apps and re-check field names with a real test account (code, tests and UI are done).

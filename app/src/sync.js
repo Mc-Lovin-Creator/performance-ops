@@ -97,6 +97,6 @@ const SYNC = (() => {
     }, 0);
     setInterval(async () => { try { const ch = await pull(false); if (ch.length) { syncBadge(ch.length + ' update' + (ch.length > 1 ? 's' : '') + ' from the team'); const bb = document.getElementById('sync-badge'); if (bb && !bb.querySelector('.reload')) { const r = document.createElement('button'); r.className = 'reload'; r.textContent = 'Load'; r.onclick = async () => { await pull(true); location.reload(); }; bb.appendChild(r); } } } catch (e) { } }, 60000);
   }
-  return { init, on: S2.on, user: () => S2.user };
+  return { init, on: S2.on, user: () => S2.user, api: (m, path, body) => req(m, path, body), pull: () => pull(true) };
 })();
 SYNC.init();

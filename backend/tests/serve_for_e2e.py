@@ -15,7 +15,11 @@ store, pw = MemoryStore(), {}
 for email, role, person, p1 in [("jp@lab.test", "lead", "jp", True), ("javi@lab.test", "coach", "javi", False)]:
     pw[email] = secrets.token_urlsafe(12)
     asyncio.run(store.add_user({"email": email, "role": role, "person": person, "p1": p1, "password_hash": hash_password(pw[email])}))
-app = create_app(store, Keys(secrets.token_urlsafe(40), gen_field_key()), ["http://localhost:8012"])
+# wearable providers are faked (no network); same fake as tests/test_wear.py
+import httpx
+from tests.test_wear import FakeProviders
+os.environ.update({"OURA_CLIENT_ID": "e2e-oura", "OURA_CLIENT_SECRET": secrets.token_urlsafe(16), "PUBLIC_API_URL": "http://localhost:8011", "APP_URL": "http://localhost:8012"})
+app = create_app(store, Keys(secrets.token_urlsafe(40), gen_field_key()), ["http://localhost:8012"], http=httpx.AsyncClient(transport=httpx.MockTransport(FakeProviders())))
 page = open(os.path.join(ROOT, "frontend", "public", "index.html")).read().replace("%REACT_APP_BACKEND_URL%", "http://localhost:8011")
 static = os.path.join(ROOT, "dist", "_e2e"); os.makedirs(static, exist_ok=True)
 open(os.path.join(static, "index.html"), "w").write(page)

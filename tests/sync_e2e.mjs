@@ -43,6 +43,27 @@ try {
   const login = await (await fetch('http://localhost:8011/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'javi@lab.test', password: pw['javi@lab.test'] }) })).json();
   const coach = await fetch('http://localhost:8011/api/state/daily', { headers: { authorization: 'Bearer ' + login.token } });
   check(coach.status === 403, 'coach refused Player 1 data');
+  // wearables: consent, connect Oura through the UI (provider faked on the server), callback, status, sync
+  const H = { authorization: 'Bearer ' + tok, 'content-type': 'application/json' };
+  const cv = await (await fetch('http://localhost:8011/api/state/consent', { headers: H })).json();
+  await fetch('http://localhost:8011/api/state/consent', { method: 'PUT', headers: H, body: JSON.stringify({ value: { p1: { wear: { by: 'jp', at: 'e2e' } } }, version: cv.version || 0 }) });
+  await p.evaluate(() => { location.hash = 'loadlab'; }); await p.waitForSelector('[data-wdev="connect"][data-arg="oura"]', { timeout: 10000 });
+  check(await p.locator('.wr-chip.off', { hasText: 'WHOOP' }).count() === 1, 'unconfigured providers shown as not set up');
+  await p.click('[data-wdev="connect"][data-arg="oura"]'); await p.waitForSelector('.wr-sheet a.btn.primary');
+  const authUrl = new URL(await p.getAttribute('.wr-sheet a.btn.primary', 'href'));
+  check(authUrl.origin === 'https://cloud.ouraring.com' && authUrl.searchParams.get('client_id') === 'e2e-oura', 'connect link goes to Oura with our client id');
+  const cb = await (await fetch(authUrl.searchParams.get('redirect_uri') + '?code=e2e&state=' + encodeURIComponent(authUrl.searchParams.get('state')))).text();
+  check(cb.includes('Connected') && cb.includes('days loaded'), 'callback stores the connection and runs the first sync');
+  await p.click('.wr-sheet [data-close]'); await p.waitForSelector('.wr-chip.on', { timeout: 10000 });
+  check((await p.textContent('.wr-chip.on')).includes('synced'), 'Oura shows as connected and synced');
+  await p.click('[data-wdev="sync"][data-arg="oura"]'); await p.waitForTimeout(1500);
+  const wv = await (await fetch('http://localhost:8011/api/state/wear', { headers: H })).json();
+  check(Object.values(wv.value || {}).some(d => d.src === 'Oura' && d.hrv === 61), 'synced days are in Player 1\'s encrypted wear record');
+  let pulled = false; for (let i = 0; i < 20 && !pulled; i++) { pulled = await p.evaluate(() => Object.values(JSON.parse(localStorage.getItem('plos.wear') || '{}')).some(d => d.src === 'Oura')); if (!pulled) await p.waitForTimeout(500); }
+  check(pulled, 'app pulled the synced days');
+  check(!JSON.stringify(await (await fetch('http://localhost:8011/api/state', { headers: H })).json()).includes('oura-at'), 'provider tokens never reach the browser');
+  if (process.env.E2E_SHOT) { await p.evaluate(() => document.querySelector('.wear').scrollIntoView()); await p.screenshot({ path: process.env.E2E_SHOT }); }
+  check(errs.length === 0, 'no page errors after wearables (' + errs.join(' | ').slice(0, 200) + ')');
   await p.click('#sync-badge button'); await p.waitForSelector('.login-c');
   const left = await p.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('plos.')).length);
   check(left === 0, 'sign-out clears the device copy');

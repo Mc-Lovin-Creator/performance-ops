@@ -3,7 +3,7 @@
 ASGI app (Starlette, the framework FastAPI is built on); run with:  uvicorn server:app --host 0.0.0.0 --port 8001
 All routes live under /api so the Emergent ingress can route them.
 
-Environment (see .env.example): MONGO_URL, DB_NAME, JWT_SECRET, FIELD_KEY, CORS_ORIGINS
+Environment (see .env.example): MONGO_URL, DB_NAME, JWT_SECRET, FIELD_KEY, CORS_ORIGINS, and the wearable keys (docs/WEARABLES.md)
 """
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from core.policy import ENCRYPTED_SCOPES, KEYS, ROLES, Denied, User, can_read, c
 from core.security import Keys, hash_password, verify_password
 from core.store import Conflict, MemoryStore, Store
 from core import totp
+from core.wear_routes import make_routes as wear_routes
 
 log = logging.getLogger("plos")
 MAX_VALUE_BYTES = 2_000_000
@@ -69,7 +70,10 @@ class SecurityHeaders:
         await self.app(scope, receive, send2)
 
 
-def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, require_2fa_p1: bool = False) -> Starlette:
+def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, require_2fa_p1: bool = False, http=None) -> Starlette:
+    if http is None:
+        import httpx
+        http = httpx.AsyncClient(timeout=20)
     attempts: dict[str, deque] = defaultdict(deque)
 
     async def current_user(req: Request) -> User | None:
@@ -349,7 +353,7 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         Route("/api/users", users, methods=["GET", "POST"]),
         Route("/api/users/{uid}", user_one, methods=["PATCH"]),
         Route("/api/audit", audit_log),
-    ]
+    ] + wear_routes(store, keys, http, current_user, require_2fa_p1)
     mw = [Middleware(CORSMiddleware, allow_origins=cors_origins or [], allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["authorization", "content-type"])]
     mw.append(Middleware(SecurityHeaders))
     return Starlette(routes=routes, middleware=mw)
