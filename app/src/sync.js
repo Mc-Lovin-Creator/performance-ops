@@ -105,16 +105,17 @@ const SYNC = (() => {
       if (x.ok) { S2.user.needs_2fa = false; ss.set('user', S2.user); toast('Two-step sign-in is on. Signing you in again.'); setTimeout(() => signOut(), 1400); }
       else { const er = o.querySelector('.login-err'); er.hidden = false; er.textContent = x.body.error || 'That code did not match'; } });
   }
+  const RL = { lead: 'Biokineticist · admin', biokineticist: 'Biokineticist', physio: 'Physiotherapist', physician: 'Physician', coach: 'Coach', manager: 'Manager', athlete: 'Athlete' }, rl = r => RL[r] || r;
   async function accounts() {
     const lead = S2.user && S2.user.role === 'lead';
-    const o = document.createElement('div'); o.className = 'login-o'; o.innerHTML = `<div class="login-c acct"><span class="eyebrow">Signed in as ${esc(S2.user.email)} · ${esc(S2.user.role)}</span><h1>Account</h1>
+    const o = document.createElement('div'); o.className = 'login-o'; o.innerHTML = `<div class="login-c acct"><span class="eyebrow">Signed in as ${esc(S2.user.email)} · ${esc(rl(S2.user.role))}</span><h1>Account</h1>
       <form data-pw class="acct-f"><b>Change your password</b><label class="field">Current password<input name="old" type="password" required autocomplete="current-password"></label>
       <label class="field">New password (12+ characters)<input name="new" type="password" minlength="12" required autocomplete="new-password"></label><p class="login-err" hidden></p><button class="btn" type="submit">Change password</button></form>
       ${lead ? `<div class="acct-team"><b>Team accounts</b><div data-list class="muted">Loading…</div>
       <form data-add class="acct-f"><b>Add a person</b><label class="field">Email<input name="email" type="email" required autocomplete="off"></label>
-      <label class="field">Role<select name="role">${['physio', 'physician', 'coach', 'manager', 'athlete', 'lead'].map(r => `<option>${r}</option>`).join('')}</select></label>
+      <label class="field">Role<select name="role">${[['biokineticist', 'Biokineticist'], ['physio', 'Physiotherapist'], ['physician', 'Physician'], ['coach', 'Coach'], ['manager', 'Manager'], ['athlete', 'Athlete'], ['lead', 'Admin (manages accounts)']].map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
       <label class="field">Person in the app<select name="person">${(typeof PEOPLE !== 'undefined' ? PEOPLE : []).map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label>
-      <label class="consent-i"><input type="checkbox" name="p1"><span><b>Player 1 access</b><em>Clinicians only (lead, physio, physician). They must turn on two-step sign-in.</em></span></label>
+      <label class="consent-i"><input type="checkbox" name="p1"><span><b>Player 1 access</b><em>Clinicians only (lead, biokineticist, physiotherapist, physician). They must turn on two-step sign-in.</em></span></label>
       <label class="field">Temporary password (12+ characters, give it to them in person; they change it here)<input name="password" type="password" minlength="12" required autocomplete="new-password"></label><p class="login-err" hidden></p><button class="btn primary" type="submit">Add</button></form></div>` : ''}
       <div style="display:flex;gap:8px"><button class="btn" type="button" data-close>Close</button></div></div>`;
     document.body.appendChild(o); o.querySelector('[data-close]').onclick = () => o.remove();
@@ -123,8 +124,8 @@ const SYNC = (() => {
       if (r.ok) { e.target.reset(); errIn(e.target, ''); toast('Password changed'); } else errIn(e.target, r.body.error || 'Not changed'); });
     if (!lead) return;
     const list = async () => { const r = await req('GET', '/users'); const L = o.querySelector('[data-list]'); if (!r.ok) { L.textContent = r.body.error || 'Not available'; return; }
-      L.innerHTML = `<div class="acct-l">${r.body.users.map(u => `<div class="acct-r${u.active === false ? ' off' : ''}"><span><b>${esc(u.email)}</b><em>${esc(u.role)} · ${esc(u.person || '')}${u.p1 ? ' · Player 1' : ''}${u.p1 && !u.totp ? ' · two-step OFF' : u.totp ? ' · two-step on' : ''}</em></span>
-        ${u.id === S2.user.id ? '<em>you</em>' : `<button class="btn sm" data-act="${u.active === false ? 'on' : 'off'}" data-id="${esc(u.id)}">${u.active === false ? 'Reactivate' : 'Deactivate'}</button>${['lead', 'physio', 'physician'].includes(u.role) ? `<button class="btn sm" data-act="${u.p1 ? 'p1off' : 'p1on'}" data-id="${esc(u.id)}">${u.p1 ? 'Remove Player 1' : 'Give Player 1'}</button>` : ''}`}</div>`).join('')}</div>`; };
+      L.innerHTML = `<div class="acct-l">${r.body.users.map(u => `<div class="acct-r${u.active === false ? ' off' : ''}"><span><b>${esc(u.email)}</b><em>${esc(rl(u.role))} · ${esc(u.person || '')}${u.p1 ? ' · Player 1' : ''}${u.p1 && !u.totp ? ' · two-step OFF' : u.totp ? ' · two-step on' : ''}</em></span>
+        ${u.id === S2.user.id ? '<em>you</em>' : `<button class="btn sm" data-act="${u.active === false ? 'on' : 'off'}" data-id="${esc(u.id)}">${u.active === false ? 'Reactivate' : 'Deactivate'}</button>${['lead', 'biokineticist', 'physio', 'physician'].includes(u.role) ? `<button class="btn sm" data-act="${u.p1 ? 'p1off' : 'p1on'}" data-id="${esc(u.id)}">${u.p1 ? 'Remove Player 1' : 'Give Player 1'}</button>` : ''}`}</div>`).join('')}</div>`; };
     o.querySelector('[data-list]').addEventListener('click', async e => { const b = e.target.closest('[data-act]'); if (!b) return; const a = b.dataset.act;
       const body = a === 'off' ? { active: false } : a === 'on' ? { active: true } : { p1: a === 'p1on' }; const r = await req('PATCH', '/users/' + b.dataset.id, body); toast(r.ok ? 'Updated' : (r.body.error || 'Not updated')); list(); });
     o.querySelector('[data-add]').addEventListener('submit', async e => { e.preventDefault(); const f = new FormData(e.target);

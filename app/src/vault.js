@@ -3,7 +3,7 @@ const VAULT = { key: null, meta: undefined, lockAt: 0, idleMs: 10 * 60 * 1000, p
 const V_IT = 310000;
 const vb64 = buf => { const b = new Uint8Array(buf); let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
 const vub64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-const vRole = () => ['lead', 'physio', 'physician'].includes(me().role);
+const vRole = () => ['lead', 'biokineticist', 'physio', 'physician'].includes(me().role);
 /* storage adapter: the artifact's shared store when present, otherwise memory (demo) */
 const VDB = {
   live: () => !!(typeof AG !== 'undefined' && AG.cap && AG.cap.db && AG.cap.db.collection),

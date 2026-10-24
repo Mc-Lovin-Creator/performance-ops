@@ -246,3 +246,22 @@ class FirstRunAndPasswords(unittest.TestCase):
         self.assertEqual(c.post("/api/auth/password", json={"old": PW, "new": "another long password"}, headers=h).status_code, 200)
         self.assertEqual(c.post("/api/auth/login", json={"email": "javi@lab.test", "password": PW}).status_code, 401)
         self.assertEqual(c.post("/api/auth/login", json={"email": "javi@lab.test", "password": "another long password"}).status_code, 200)
+
+
+class Biokineticist(unittest.TestCase):
+    def test_biokineticist_is_a_clinical_role(self):
+        bk_user = User("b", "olivia@lab.test", "biokineticist", "olivia", p1=True)
+        self.assertTrue(can_read(bk_user, "daily"))
+        self.assertTrue(can_read(bk_user, "assess"))
+        self.assertTrue(can_write(bk_user, "daily"))
+
+    def test_lead_adds_biokineticist_with_player1_and_cannot_give_coach_player1(self):
+        c, store, keys = setup_app()
+        h = login(c, "jp@lab.test")
+        r = c.post("/api/users", headers=h, json={"email": "liv@lab.test", "role": "biokineticist", "person": "olivia", "p1": True, "password": PW})
+        self.assertEqual(r.status_code, 201)
+        self.assertTrue(r.json()["user"]["p1"])
+        liv = login(c, "liv@lab.test")
+        self.assertEqual(c.put("/api/state/daily", headers=liv, json={"value": {"d": 1}, "version": 0}).status_code, 200)
+        coach = next(u for u in asyncio.run(store.list_users()) if u["role"] == "coach")
+        self.assertEqual(c.patch(f"/api/users/{coach['id']}", headers=h, json={"p1": True}).status_code, 400)

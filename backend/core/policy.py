@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-ROLES = ("lead", "physio", "physician", "coach", "manager", "athlete")
-CLINICAL_ROLES = {"lead", "physio", "physician"}
-STAFF_ROLES = {"lead", "physio", "physician", "coach", "manager"}
+ROLES = ("lead", "biokineticist", "physio", "physician", "coach", "manager", "athlete")
+CLINICAL_ROLES = {"lead", "biokineticist", "physio", "physician"}
+STAFF_ROLES = {"lead", "biokineticist", "physio", "physician", "coach", "manager"}
 
 KEYS: dict[str, str] = {
     # per-user preferences and view state

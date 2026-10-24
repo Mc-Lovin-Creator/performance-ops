@@ -23,7 +23,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from core import bookings as bk
-from core.policy import ENCRYPTED_SCOPES, KEYS, ROLES, Denied, User, can_read, can_write, readable_keys, scope_of, storage_scope_id
+from core.policy import CLINICAL_ROLES, ENCRYPTED_SCOPES, KEYS, ROLES, Denied, User, can_read, can_write, readable_keys, scope_of, storage_scope_id
 from core.security import Keys, hash_password, verify_password
 from core.store import Conflict, MemoryStore, Store
 from core import totp
@@ -350,7 +350,7 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
             b = await req.json()
             role = b["role"]
             assert role in ROLES, "unknown role"
-            doc = {"email": str(b["email"]).strip().lower(), "role": role, "person": str(b.get("person", "")), "p1": bool(b.get("p1")) and role in ("lead", "physio", "physician"),
+            doc = {"email": str(b["email"]).strip().lower(), "role": role, "person": str(b.get("person", "")), "p1": bool(b.get("p1")) and role in CLINICAL_ROLES,
                    "password_hash": hash_password(str(b["password"]))}
             u = await store.add_user(doc)
         except (KeyError, AssertionError, ValueError) as e:
@@ -366,6 +366,9 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         if "active" in b:
             fields["active"] = bool(b["active"])
         if "p1" in b:
+            target = await store.user_by_id(uid) or {}
+            if bool(b["p1"]) and b.get("role", target.get("role")) not in CLINICAL_ROLES:
+                return err(400, "Player 1 access is for clinicians only (lead, biokineticist, physio, physician)")
             fields["p1"] = bool(b["p1"])
         if "role" in b:
             if b["role"] not in ROLES:

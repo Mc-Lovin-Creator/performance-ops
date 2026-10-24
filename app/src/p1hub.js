@@ -138,7 +138,7 @@ document.addEventListener('submit', e => {
 function p1Dash(T, cov, au, planAU) {
   const a = P1(), r = todayRec(), n = a.loads.length, rb = RT.band(a.acwr), w = p1Wellness(), t = p1Type(r);
   const ST = { duty: ['On duty', 'c-ok'], off: ['Off', 'c-muted'], leave: ['Leave', 'c-load'], sick: ['Sick', 'c-risk'], trip: ['Official trip', 'c-health'] };
-  const role = { jp: 'Lead biokineticist', olivia: 'Biokineticist' };
+  const role = { jp: 'Biokineticist', olivia: 'Biokineticist' };
   const duty = `<section class="panel p1d"><div class="sec-head"><div><span class="eyebrow">Today · ${TODAY.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</span><h3>On duty for Player 1</h3></div><a class="btn sm" href="#calendar">Calendar</a></div>
     <div class="rows">${cov.map(c => { const st = ST[c.st] || [c.st, 'c-muted']; return `<div class="row"><span class="av">${c.s.name.slice(0, 2).toUpperCase()}</span><span class="grow"><b>${c.s.name}</b><br><span class="muted" style="font-size:12.5px">${role[c.s.id] || ''}</span></span><span class="chip ${st[1]}">${st[0]}</span></div>`; }).join('')}<div class="row"><span class="av">DR</span><span class="grow"><b>Team physician</b><br><span class="muted" style="font-size:12.5px">Receives the daily update · Player 1 access</span></span><span class="chip c-health">On call</span></div></div>
     ${cov.some(c => c.st === 'duty') ? '' : '<p class="muted" style="margin:0;color:var(--risk)">Nobody from the clinical team is on duty today. Assign cover.</p>'}</section>`;

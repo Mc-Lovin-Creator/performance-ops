@@ -9,8 +9,8 @@ const dayLabel = (back) => { const d = new Date(TODAY); d.setDate(d.getDate() - 
 
 /* ---------- people, roles, permissions ---------- */
 const PEOPLE = [
-  { id: 'jp', name: 'JP', full: 'JP · Lead biokineticist', role: 'lead', init: 'JP' },
-  { id: 'olivia', name: 'Olivia', full: 'Olivia · Biokineticist', role: 'physio', init: 'OL' },
+  { id: 'jp', name: 'JP', full: 'JP · Biokineticist', role: 'lead', init: 'JP' },
+  { id: 'olivia', name: 'Olivia', full: 'Olivia · Biokineticist', role: 'biokineticist', init: 'OL' },
   { id: 'physio2', name: 'Physio 2', full: 'Physio 2 · Physiotherapist', role: 'physio', init: 'P2' },
   { id: 'dr', name: 'Physician', full: 'Team physician', role: 'physician', init: 'DR' },
   { id: 'javi', name: 'Javi', full: 'Javi · Head coach', role: 'coach', init: 'JA' },
@@ -22,8 +22,9 @@ const PEOPLE = [
   { id: 'p1', name: 'Player 1', full: 'Player 1 · Athlete', role: 'athlete', init: 'P1', athlete: 'p1' }
 ];
 const ROLE = {
-  lead: { label: 'Lead', clinical: true, load: true, staff: true, editAccess: true },
-  physio: { label: 'Biokineticist', clinical: true, load: true, staff: false },
+  lead: { label: 'Biokineticist', clinical: true, load: true, staff: true, editAccess: true },
+  biokineticist: { label: 'Biokineticist', clinical: true, load: true, staff: false },
+  physio: { label: 'Physiotherapist', clinical: true, load: true, staff: false },
   physician: { label: 'Physician', clinical: true, load: true, staff: false },
   coach: { label: 'Coach', clinical: false, load: true, staff: false },
   manager: { label: 'Manager', clinical: false, load: true, staff: true },
@@ -76,7 +77,7 @@ const TIERS = ['Sedentary', 'Recreationally active', 'Trained / developmental', 
 
 /* ---------- staff (non-clinical) ---------- */
 const STAFF = [
-  { id: 'jp', name: 'JP', role: 'Lead', status: 'On duty', sessions: 19, hours: 46, streak: 6, leave: 21.5, cpd: 14, load: 82 },
+  { id: 'jp', name: 'JP', role: 'Biokineticist', status: 'On duty', sessions: 19, hours: 46, streak: 6, leave: 21.5, cpd: 14, load: 82 },
   { id: 'olivia', name: 'Olivia', role: 'Biokineticist', status: 'On duty', sessions: 24, hours: 42, streak: 5, leave: 18.0, cpd: 9, load: 76 },
   { id: 'physio2', name: 'Physio 2', role: 'Physio', status: 'Vacation', sessions: 0, hours: 0, streak: 0, leave: 6.5, cpd: 11, load: 12 },
   { id: 'javi', name: 'Javi', role: 'Coach', status: 'On duty', sessions: 22, hours: 38, streak: 4, leave: 24.0, cpd: 6, load: 68 }
@@ -861,7 +862,7 @@ function pageCalendar() {
     <div class="ink-panel"><span class="eyebrow" style="color:inherit;opacity:.75">Agent · cover check, ${label}</span>${checks.length ? checks.map(c => `<div style="display:flex;gap:10px;font-size:14px"><span style="flex:none;width:8px;height:8px;border-radius:50%;margin-top:7px;background:${c.level === 'risk' ? 'var(--risk)' : 'var(--warn)'}"></span><span>${esc(c.text)}</span></div>`).join('') : '<span>No cover gaps this month.</span>'}<span class="muted" style="font-size:12px">Rule-based today; the Grok agent takes this over in the build and proposes swaps.</span></div>
   </div>
   <section class="panel"><h2>How the staff load score works</h2><div class="mono" style="font-size:14px;background:var(--surface-2);border-radius:12px;padding:14px 16px;overflow-x:auto">score = 40 × days worked ÷ days in month + 35 × working days in last 14 ÷ 14 + 20 × court hours ÷ team max + 5 × protocols ÷ team max</div><span class="muted" style="font-size:13.5px">Same formula as the padel coaches. Bands: under 40 low, 40 to 69 moderate, 70 to 84 high, 85 or more very high. Official trips count as working days with 4 court hours.</span></section>
-  <div class="grid2"><section class="panel"><h2>Add leave or an official trip</h2>${perm().editAccess || me().role === 'physio' ? `<form id="evform" class="stack"><div class="grid3" style="gap:14px">
+  <div class="grid2"><section class="panel"><h2>Add leave or an official trip</h2>${perm().editAccess || ['physio', 'biokineticist'].includes(me().role) ? `<form id="evform" class="stack"><div class="grid3" style="gap:14px">
       <label class="field">Type<select id="ev-type"><option value="leave">Leave</option><option value="sick">Sick day</option><option value="trip">Official trip</option></select></label>
       <label class="field">From<input id="ev-from" type="date" value="2026-12-07"></label><label class="field">To<input id="ev-to" type="date" value="2026-12-10"></label></div>
       <div class="field">Who<div class="pills"><button type="button" class="pill" data-act="evwho" data-arg="jp" aria-pressed="true">JP</button><button type="button" class="pill" data-act="evwho" data-arg="olivia" aria-pressed="false">Olivia</button></div></div>
