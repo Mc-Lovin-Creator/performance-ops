@@ -129,8 +129,8 @@ Do not create accounts, keys, passwords or test data.</pre></div>
 
   <li class="round" data-n="4" id="r4">
     <div class="rhead"><div><h2>Your lead account</h2><span class="tag">Stage 2 · on the preview</span></div><label class="done-t"><input type="checkbox" id="d4">Done</label></div>
-    <ul class="you"><li>Open the preview. Enter your <code>SETUP_TOKEN</code>, your work email and a new password (12+ characters). This works once.</li><li>Then <b>delete <code>SETUP_TOKEN</code></b> from Emergent's environment settings and paste:</li></ul>
-    <div class="paste"><div class="paste-h"><span>Paste into Emergent</span><button type="button" class="gold" data-copy="p1">Copy</button></div><pre id="p1">Read deploy/EMERGENT_RULES.md. I removed SETUP_TOKEN from the backend environment. Restart the backend only, then run
+    <ul class="you"><li>Open the preview. Enter your <code>SETUP_TOKEN</code>, your work email and a new password (12+ characters). This works once.</li><li>Then <b>edit <code>SETUP_TOKEN</code> to <code>off</code></b> in Emergent's project settings (no delete button; under 32 characters switches it off) and paste:</li></ul>
+    <div class="paste"><div class="paste-h"><span>Paste into Emergent</span><button type="button" class="gold" data-copy="p1">Copy</button></div><pre id="p1">Read deploy/EMERGENT_RULES.md. I set SETUP_TOKEN to off in the project settings. Make backend/.env match (SETUP_TOKEN=off). Restart the backend only, then run
 python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1 and paste the output, and confirm that
 GET /api/setup/status returns {&quot;open&quot;: false}. Change nothing else.</pre></div>
   </li>

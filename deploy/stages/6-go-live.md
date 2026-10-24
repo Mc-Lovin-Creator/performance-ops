@@ -24,7 +24,7 @@
    - `DB_NAME=performance_ops`
 2. **Run stage 1 and stage 2 again** against production:
    - Production starts empty: there is no copy of staging data.
-   - Create your lead account with a fresh `SETUP_TOKEN`, then delete it.
+   - Create your lead account with a fresh `SETUP_TOKEN`, then edit it to `off`.
 3. **Run the check:**
    ```bash
    python3 scripts/check_deploy.py --api https://lab.<your-domain> --stage 3 --email <you>

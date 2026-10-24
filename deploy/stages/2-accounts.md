@@ -5,7 +5,7 @@
 ## You do
 
 1. **Create your lead account.** Open the preview: while the server has no accounts and `SETUP_TOKEN` is set, the sign-in screen shows **Create the first lead account**. Enter the `SETUP_TOKEN`, your work email and a new password (12+ characters). This works once. (From a terminal instead: `python3 scripts/first_lead.py --api <url> --email <you>`.)
-2. **Close the set-up door.** In Emergent's backend environment, **delete `SETUP_TOKEN`** and ask the agent to restart the backend:
+2. **Close the set-up door.** In Emergent's project settings, **edit `SETUP_TOKEN` to `off`** (Emergent has no delete button; any value under 32 characters switches set-up off) and ask the agent to restart the backend:
    ```
    Read deploy/EMERGENT_RULES.md. Restart the backend only and report GET /api/health. Change nothing else.
    ```
@@ -37,6 +37,6 @@ python3 scripts/check_deploy.py --api https://<your-preview-url> --stage 2 --ema
 ## Done when
 
 - [ ] Stage 2 check PASSED
-- [ ] `SETUP_TOKEN` removed. The sign-in screen no longer offers "Create the first lead account".
+- [ ] `SETUP_TOKEN` set to `off`. The sign-in screen no longer offers "Create the first lead account".
 - [ ] Olivia and the physician signed in, changed their password and turned on two-step sign-in
 - [ ] Coach account cannot open Player 1 pages (sign in as the coach once to see this)

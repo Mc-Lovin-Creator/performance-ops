@@ -47,10 +47,10 @@ Do not create accounts, keys, passwords or test data.
 **You do:**
 1. Open the preview. The sign-in screen shows **Create the first lead account**.
 2. Enter your `SETUP_TOKEN`, your work email and a new password of 12 or more characters.
-3. **Then delete `SETUP_TOKEN`** from the environment settings and paste:
+3. **Then edit `SETUP_TOKEN` to `off`** in the project settings (there is no delete button; any value under 32 characters switches set-up off) and paste:
 
 ```
-Read deploy/EMERGENT_RULES.md. I removed SETUP_TOKEN from the backend environment. Restart the backend only, then run
+Read deploy/EMERGENT_RULES.md. I set SETUP_TOKEN to off in the project settings. Make backend/.env match (SETUP_TOKEN=off). Restart the backend only, then run
 python3 scripts/check_deploy.py --api http://localhost:8001 --stage 1 and paste the output, and confirm that
 GET /api/setup/status returns {"open": false}. Change nothing else.
 ```
