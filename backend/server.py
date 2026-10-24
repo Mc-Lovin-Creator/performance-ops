@@ -28,6 +28,7 @@ from core.security import Keys, hash_password, verify_password
 from core.store import Conflict, MemoryStore, Store
 from core import totp
 from core.wear_routes import make_routes as wear_routes
+from core.scout import Scout, LANES as SCOUT_LANES, feeds_from_env
 
 log = logging.getLogger("plos")
 MAX_VALUE_BYTES = 2_000_000
@@ -380,6 +381,28 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         await audit(user, "user changed", uid, ", ".join(k for k in fields if k != "password_hash") + (", password" if "password_hash" in fields else ""), req=req)
         return JSONResponse({"ok": True})
 
+    scout = Scout(store, http)
+
+    async def scout_run(req: Request):
+        """Scheduler (x-cron-key = SCOUT_CRON_KEY) or the lead from the app. Public sources only, see core/scout.py."""
+        ck = os.environ.get("SCOUT_CRON_KEY", "")
+        if len(ck) >= 32 and hmac.compare_digest(ck, req.headers.get("x-cron-key", "")):
+            who = None
+        else:
+            who = await current_user(req)
+            if not who:
+                return err(401, "sign in required")
+            if who.role != "lead":
+                return err(403, "lead only")
+        r = await scout.run()
+        await audit(who, "innovation scan", "scout", f"{r['added']} new of {r['found']} found, {r['lanes']} lanes, {len(r['errors'])} errors", req=req)
+        return JSONResponse(r)
+
+    @needs_user
+    async def scout_status(req, user: User):
+        return JSONResponse({"grok": bool(os.environ.get("XAI_API_KEY")), "model": os.environ.get("XAI_MODEL", "grok-4.7"),
+                             "feeds": len(feeds_from_env()), "lanes": SCOUT_LANES, "scheduled": len(os.environ.get("SCOUT_CRON_KEY", "")) >= 32})
+
     @needs_user
     async def audit_log(req, user: User):
         if user.role not in ("lead", "manager"):
@@ -402,6 +425,8 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         Route("/api/users", users, methods=["GET", "POST"]),
         Route("/api/users/{uid}", user_one, methods=["PATCH"]),
         Route("/api/audit", audit_log),
+        Route("/api/scout/run", scout_run, methods=["POST"]),
+        Route("/api/scout/status", scout_status),
     ] + wear_routes(store, keys, http, current_user, require_2fa_p1)
     mw = [Middleware(CORSMiddleware, allow_origins=cors_origins or [], allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["authorization", "content-type"])]
     mw.append(Middleware(SecurityHeaders))

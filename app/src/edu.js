@@ -190,7 +190,7 @@ const SOURCES = [
 ];
 function evidenceLibrary() {
   const q = EDU.srcq || '';
-  const latest = (typeof AG !== 'undefined' ? AG.evidence : []);
+  const latest = (typeof agEvidence === 'function' ? agEvidence() : []);
   return `<section class="panel ev-search"><label class="ask-in"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ev-q" placeholder="Search the evidence, e.g. spring ligament rehabilitation" value="${esc(q)}" autocomplete="off"></label>
     <div class="pills">${SOURCES.flatMap(c => c.items).filter(s => s[3]).map(s => `<a class="pill ev-go" data-ev="${esc(s[3])}" href="${esc(s[3] + encodeURIComponent(q || ''))}" target="_blank" rel="noopener">${esc(s[0])} ↗</a>`).join('')}</div>
     <span class="muted" style="font-size:12.5px">Type once, then open it in any source. Searches go straight to that site; nothing about a patient should ever be typed here.</span></section>

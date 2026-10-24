@@ -50,3 +50,11 @@ git tag release-$(date +%F) && git push origin --tags
 ```
 
 (or ask Claude to do it)
+
+## 2026-10-24 (afternoon)
+- Anatomy: teaching cards for the whole body (all 724 musculoskeletal structures, plus vessels, nerves, organs, brain and eye).
+- Anatomy: breathing (quiet or deep: diaphragm descends, ribs widen, abdomen moves out), clearer fascicles, six upper-body and neck lessons, six new close-ups.
+- Records: safe PDF reader (read on the device, no AI, only the checked summary is saved encrypted, the file is not kept).
+- Records: the vault now saves to the team server (it was browser memory only); Player 1 has a separate vault and passphrase.
+- Fix: every click in the app was redrawing the page and could wipe what someone was typing.
+- Innovation scout on the server: Grok on the web and X, plus chosen feeds, with domain summaries (stage 4b, optional).

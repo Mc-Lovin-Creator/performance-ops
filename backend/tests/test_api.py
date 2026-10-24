@@ -188,6 +188,14 @@ class Records(unittest.TestCase):
         self.assertEqual(r.status_code, 200, r.text)
         self.assertIn("sealed", self.store.state[("shared", "emr")])
 
+    def test_scout_run_lead_only(self):
+        os.environ.pop("XAI_API_KEY", None)
+        self.assertEqual(self.c.post("/api/scout/run", headers=login(self.c, "javi@lab.test")).status_code, 403)
+        self.assertEqual(self.c.post("/api/scout/run").status_code, 401)
+        r = self.c.post("/api/scout/run", headers=login(self.c, "jp@lab.test"))
+        self.assertEqual((r.status_code, r.json()["added"]), (200, 0))
+        self.assertFalse(self.c.get("/api/scout/status", headers=login(self.c, "jp@lab.test")).json()["grok"])
+
     def test_list_records_and_delete(self):
         h = login(self.c, "olivia@lab.test")
         self.c.patch("/api/state/assess/records", headers=h, json={"kind": "list", "changes": {"a": {"id": "a", "x": 1}, "b": {"id": "b", "x": 2}}, "base": {}})

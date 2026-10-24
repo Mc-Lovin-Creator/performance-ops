@@ -3,6 +3,7 @@
 
   python3 scripts/gen_keys.py            JWT_SECRET, FIELD_KEY, SETUP_TOKEN
   python3 scripts/gen_keys.py --wear     also WEAR_CRON_KEY and GARMIN_PUSH_KEY
+  python3 scripts/gen_keys.py --scout    also SCOUT_CRON_KEY (daily innovation scan)
 
 Paste the lines into Emergent's environment settings for the backend. Then:
 - do not paste them into any chat (Emergent's agent, Claude or anyone else)
@@ -21,3 +22,5 @@ print("SETUP_TOKEN=" + secrets.token_urlsafe(40) + "    # remove after the first
 if "--wear" in sys.argv:
     print("WEAR_CRON_KEY=" + secrets.token_urlsafe(40))
     print("GARMIN_PUSH_KEY=" + secrets.token_urlsafe(32))
+if "--scout" in sys.argv:
+    print("SCOUT_CRON_KEY=" + secrets.token_urlsafe(40))

@@ -20,6 +20,7 @@ Do them in order. Each stage has a guide with what you do, a prompt to paste int
 | 2 | [First accounts](stages/2-accounts.md) | Your lead account, two-step sign-in, Olivia and the physician added | `deploy-stage-2` |
 | 3 | [Staging run-through](stages/3-staging.md) | Every page tried with demo data, backups on, team trained | `deploy-stage-3` |
 | 4 | [Wearables](stages/4-wearables.md) | Player 1's device syncing daily (optional, when provider apps are approved) | `deploy-stage-4` |
+| 4b | [Innovation scout](stages/4b-scout.md) | Grok scans the web and X daily for research, launches and drops, with a summary per domain (optional, public data only) | |
 | 5 | [Hosting and domain](stages/5-hosting.md) | Approved UAE hosting decision, your own web address | `deploy-stage-5` |
 | 6 | [Go-live](stages/6-go-live.md) | Real Player 1 data, after every gate is signed off | `deploy-stage-6` |
 

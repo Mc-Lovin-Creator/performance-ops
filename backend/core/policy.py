@@ -23,7 +23,7 @@ KEYS: dict[str, str] = {
     "me": "user", "priv": "user", "lastStaff": "user", "nprof": "user", "fx": "user", "labsOpen": "user",
     # team
     "bookings": "team", "events": "team", "group": "team", "ideas": "team", "msgs": "team",
-    "mtier": "team", "rstation": "team", "sqcap": "team", "sqmin": "team", "tracklog": "team", "trials": "team",
+    "mtier": "team", "scout": "team", "scoutdigest": "team", "rstation": "team", "sqcap": "team", "sqmin": "team", "tracklog": "team", "trials": "team",
     # clinical (squad)
     "updates": "clinic", "assess": "clinic", "cl": "clinic", "consent": "clinic",
     # records vault: already AES-256-GCM ciphertext from the browser; the server encrypts it again at rest

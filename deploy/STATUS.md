@@ -6,9 +6,10 @@ Edit this file as you go (on GitHub: pencil icon, then commit to `main`). One li
 | --- | --- | --- | --- | --- |
 | 0 Prepare | done | 2026-10-24 | 3653d68 | Repo moved to performance-ops; keys made |
 | 1 Import and run | done | 2026-10-24 | b34e690 | Emergent project "punchline-ops"; stage 1 check PASSED |
-| 2 First accounts | in progress | 2026-10-24 | | Lead account made, two-step on, SETUP_TOKEN edited to off; team still to add |
+| 2 First accounts | in progress | 2026-10-24 | | Lead account made, two-step on, SETUP_TOKEN edited to off; Olivia added; physician and Javi to add |
 | 3 Staging run-through | in progress | 2026-10-24 | | Backup answers recorded; publish costs about 50 credits a month; region not documented |
 | 4 Wearables (optional) | not started | | deploy-stage-4 | |
+| 4b Innovation scout (optional) | not started | | | Needs XAI_API_KEY and SCOUT_CRON_KEY |
 | 5 Hosting and domain | not started | | deploy-stage-5 | |
 | 6 Go-live | blocked until 2, 3 and 5 are done | | deploy-stage-6 | |
 

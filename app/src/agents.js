@@ -48,8 +48,9 @@ function agInternal(id) {
   return [];
 }
 function agStatus(id) {
-  const ext = { scout: AG.scout, evidence: AG.evidence, askdesk: AG.askq.filter(q => q.status === 'done') }[id];
+  const ext = { scout: agScoutItems(), evidence: agEvidence(), askdesk: AG.askq.filter(q => q.status === 'done') }[id];
   const run = AG.runs.find(r => r.agent === id);
+  if (id === 'scout' && agSrv()) { const dg = store.get('scoutdigest', null); return dg ? ['ok', 'Last scan ' + dg.date] : ['wait', 'Waiting for its first scan']; }
   if (ext) return run ? ['ok', 'Last run ' + new Date(run.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })] : AG.cap.db ? ['wait', 'Waiting for its first run'] : ['off', 'Needs the shared store'];
   if (id === 'ask') return AG.cap.sample ? ['ok', 'Ready'] : ['off', 'Not available in this view'];
   return ['ok', 'Running in the app'];
@@ -57,7 +58,7 @@ function agStatus(id) {
 function pageAgents() {
   const kinds = [['External', 'Search the web on a schedule'], ['Live', 'Answers on demand'], ['Internal', 'Run on the app\'s own data, nothing leaves it']];
   const card = g => { const st = agStatus(g.id), open = AG.open === g.id;
-    const out = g.kind === 'Internal' ? agInternal(g.id) : g.id === 'scout' ? AG.scout.slice(0, 4).map(x => x.title) : g.id === 'evidence' ? AG.evidence.slice(0, 4).map(x => x.title) : g.id === 'askdesk' ? AG.askq.slice(0, 4).map(x => (x.status === 'done' ? 'Answered: ' : 'Queued: ') + x.q) : ['Ask anything on the Ask page'];
+    const out = g.kind === 'Internal' ? agInternal(g.id) : g.id === 'scout' ? agScoutItems().slice(0, 4).map(x => x.title) : g.id === 'evidence' ? agEvidence().slice(0, 4).map(x => x.title) : g.id === 'askdesk' ? AG.askq.slice(0, 4).map(x => (x.status === 'done' ? 'Answered: ' : 'Queued: ') + x.q) : ['Ask anything on the Ask page'];
     return `<article class="ag-card${open ? ' open' : ''}" style="--ag:${g.color}"><button class="ag-head" data-ag="open" data-arg="${g.id}" aria-expanded="${open}"><span class="ag-orb" aria-hidden="true"><i></i></span><span class="grow"><b>${g.name}</b><span class="muted">${g.when}</span></span><span class="ag-st ag-${st[0]}">${st[1]}</span></button>
       <p class="ag-task">${esc(g.task)}</p>
       <div class="ag-flow"><span><em>Reads</em>${esc(g.reads)}</span><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><path d="M0 6h15M11 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span><em>Writes</em>${esc(g.writes)}</span><span><em>Goes to</em>${esc(g.who)}</span></div>
@@ -70,14 +71,29 @@ function pageAgents() {
   <section class="panel"><div class="sec-head"><h2>Run log</h2><span class="muted" style="font-size:13px">Written by the agents themselves</span></div>${feed.length ? `<div class="rows">${feed.map(r => `<div class="row" style="font-size:13.5px"><span class="dot" style="background:${(AGENTS.find(g => g.id === r.agent) || {}).color || '#888'}"></span><span class="grow"><b>${esc((AGENTS.find(g => g.id === r.agent) || {}).name || r.agent)}</b> · ${esc(r.summary || '')}</span><span class="muted num">${new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')}</div>` : `<p class="muted" style="margin:0">${AG.cap.db ? 'No runs yet. The first scheduled run fills this.' : 'The run log needs the shared store, which this view does not have.'}</p>`}</section>`;
 }
 /* Innovation inbox: what the scout found, waiting for a clinician to push it */
+/* On the team server the scout runs there (Grok on the web and X, plus chosen feeds) and writes the team `scout` record */
+const agSrv = () => { try { return typeof SYNC !== 'undefined' && SYNC.on; } catch (e) { return false; } };
+const AG_LANES = ['Launches and drops', 'Wearables and hardware', 'Performance science', 'Recovery and rehab', 'Longevity', 'Padel', 'Nutrition and supplements', 'Apparel and footwear', 'Software and AI'];
+function agScoutItems() { return agSrv() ? Object.values(store.get('scout', {}) || {}).sort((a, b) => (b.at || '').localeCompare(a.at || '')) : AG.scout; }
+function agEvidence() { return agSrv() ? agScoutItems().filter(x => x.kind === 'research').map(x => ({ title: x.title, url: x.url, finding: x.summary, grade: 'Research, check the paper', topic: x.lane, journal: x.source, date: x.date, at: x.at })) : AG.evidence; }
+function agScoutHead() {
+  if (!agSrv()) return '';
+  const st = AG.srvStatus, dg = store.get('scoutdigest', null), lead = me().role === 'lead';
+  if (!st && !AG.srvAsked) { AG.srvAsked = true; SYNC.api('GET', '/scout/status').then(r => { if (r.ok) { AG.srvStatus = r.body; keepRender(); } }).catch(() => { }); }
+  const lanes = dg && dg.lanes ? Object.entries(dg.lanes) : [];
+  return `<section class="panel"><div class="sec-head"><div><span class="eyebrow">This week by domain${dg ? ' · ' + esc(dg.date) : ''}</span><h2>Domain summaries</h2></div>${lead ? `<button class="btn sm" data-ag="scan" ${AG.scanning ? 'disabled' : ''}>${AG.scanning ? 'Scanning… (a few minutes)' : 'Run the scan now'}</button>` : ''}</div>
+    <p class="muted" style="margin:0;font-size:12.5px">${st ? (st.grok ? `Grok (${esc(st.model)}) searches the web and X` : 'Grok is off until XAI_API_KEY is added in the server settings') + ` · ${st.feeds} feed${st.feeds === 1 ? '' : 's'}` + (st.scheduled ? ' · runs daily' : ' · not scheduled yet') : 'Checking the scout…'}. Public sources only; no team or patient data is sent. Links are kept only if Grok actually cited them.</p>
+    ${lanes.length ? `<div class="facts">${AG_LANES.filter(l => dg.lanes[l]).map(l => `<div><span>${esc(l)}</span><span>${esc(dg.lanes[l].summary)}</span></div>`).join('')}</div>` : '<p class="muted" style="margin:0;font-size:13px">No summaries yet. They appear after the first scan.</p>'}
+    ${dg && dg.errors && dg.errors.length ? `<p class="muted" style="font-size:12px;margin:0">Last scan had ${dg.errors.length} problem${dg.errors.length > 1 ? 's' : ''}: ${esc(dg.errors.slice(0, 2).join('; '))}</p>` : ''}</section>`;
+}
 function innovationInbox() {
-  const lanes = ['Performance science', 'Wearables and hardware', 'Software and AI', 'Apparel and footwear', 'Nutrition and supplements', 'Padel'];
-  const items = AG.scout.map(x => Object.assign({ pops: x.pops || inferPops([x.title, x.summary, x.why, x.lane].join(' ')) }, x)).filter(x => popMatch(x.pops)); const canPush = perm().clinical || me().role === 'lead';
+  const lanes = AG_LANES;
+  const items = agScoutItems().map(x => Object.assign({ pops: x.pops || inferPops([x.title, x.summary, x.why, x.lane].join(' ')) }, x)).filter(x => popMatch(x.pops)); const canPush = perm().clinical || me().role === 'lead';
   const byLane = l => items.filter(x => x.lane === l);
-  return `<section class="stack" style="gap:14px"><div class="sec-head"><div><span class="eyebrow">Innovation scout · daily</span><h2>Today's scan</h2></div><span class="muted" style="font-size:13px">${items.length ? items.filter(x => x.status === 'new').length + ' waiting for a decision' : ''}</span></div>${popFilterBar('Scout results for')}
-    ${items.length ? `<div class="ag-lanes">${lanes.map(l => `<section class="panel ag-lane"><h3>${l}</h3>${byLane(l).length ? byLane(l).slice(0, 4).map(x => `<article class="ag-item ${x.status || 'new'}"><a href="${esc(x.url || '#')}" target="_blank" rel="noopener"><b>${esc(x.title)}</b></a>${popTags(x.pops)}<p>${esc(x.summary || '')}</p>${x.why ? `<p class="muted"><b>Why it matters:</b> ${esc(x.why)}</p>` : ''}<span class="muted" style="font-size:11.5px">${esc(x.source || '')}${x.date ? ' · ' + esc(x.date) : ''}</span>
+  return agScoutHead() + `<section class="stack" style="gap:14px"><div class="sec-head"><div><span class="eyebrow">Innovation scout · daily</span><h2>Today's scan</h2></div><span class="muted" style="font-size:13px">${items.length ? items.filter(x => x.status === 'new').length + ' waiting for a decision' : ''}</span></div>${popFilterBar('Scout results for')}
+    ${items.length ? `<div class="ag-lanes">${lanes.map(l => `<section class="panel ag-lane"><h3>${l}</h3>${byLane(l).length ? byLane(l).slice(0, 4).map(x => `<article class="ag-item ${x.status || 'new'}"><a href="${esc(x.url || '#')}" target="_blank" rel="noopener"><b>${esc(x.title)}</b></a>${popTags(x.pops)}<p>${esc(x.summary || '')}</p>${x.why ? `<p class="muted"><b>Why it matters:</b> ${esc(x.why)}</p>` : ''}<span class="muted" style="font-size:11.5px">${x.kind && x.kind !== 'news' ? `<b>${esc(x.kind[0].toUpperCase() + x.kind.slice(1))}</b> · ` : ''}${esc(x.source || '')}${x.date ? ' · ' + esc(x.date) : ''}${x.via === 'grok' ? ' · found by Grok' : x.via === 'feed' ? ' · from a feed' : ''}</span>
       ${x.status === 'pushed' ? `<span class="chip c-ok">Sent to ${esc((x.pushedTo || []).map(g => (AG_GROUPS.find(a => a[0] === g) || [0, g])[1]).join(', '))}</span>` : x.status === 'dismissed' ? '<span class="chip c-muted">Dismissed</span>' : canPush ? `<div class="ag-push"><select data-ag-to="${x.id}">${AG_GROUPS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select><button class="btn sm primary" data-ag="push" data-arg="${x.id}">Push</button><button class="btn sm" data-ag="dismiss" data-arg="${x.id}">Dismiss</button></div>` : ''}</article>`).join('') : '<p class="muted" style="margin:0;font-size:13px">Nothing new in this lane.</p>'}</section>`).join('')}</div>`
-      : `<section class="panel"><p class="muted" style="margin:0">${AG.cap.db ? 'The scout has not run yet. Its first scan lands here at 06:00 Abu Dhabi time.' : 'The inbox needs the shared store, which this view does not have.'}</p></section>`}</section>`;
+      : `<section class="panel"><p class="muted" style="margin:0">${agSrv() ? 'Nothing scanned yet.' : AG.cap.db ? 'The scout has not run yet. Its first scan lands here at 06:00 Abu Dhabi time.' : 'The inbox needs the shared store, which this view does not have.'}</p></section>`}</section>`;
 }
 /* Ask: live answers pitched to the person; deep research goes to the Ask desk */
 const AG_BLOCK = () => new RegExp('\\b(' + ATH.map(a => a.name).concat(['player 1', 'patient', 'diagnos', 'mrn', 'emirates id', 'date of birth', 'dob']).map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'i');
@@ -155,6 +171,12 @@ document.addEventListener('click', async e => {
   else if (k === 'deep') agAsk(true);
   else if (k === 'listen') agSpeak();
   else if (k === 'hub') { EDU.dom = t.dataset.d; EDU.sec = a; go(me().role === 'athlete' ? 'learn' : 'learn'); }
+  else if (k === 'scan' && agSrv()) { AG.scanning = true; keepRender(); try { const r = await SYNC.api('POST', '/scout/run'); await SYNC.pull(); toast(r.ok ? `${r.body.added} new item${r.body.added === 1 ? '' : 's'} from ${r.body.lanes} domains` : (r.body.error || 'The scan failed')); } catch (err) { toast('The scan failed'); } AG.scanning = false; keepRender(); }
+  else if ((k === 'push' || k === 'dismiss') && agSrv()) {
+    const to = (document.querySelector(`[data-ag-to="${a}"]`) || {}).value, m = Object.assign({}, store.get('scout', {})); if (!m[a]) return;
+    m[a] = Object.assign({}, m[a], k === 'push' ? { status: 'pushed', pushedTo: [to], pushedAt: new Date().toISOString(), pushedBy: me().name } : { status: 'dismissed' });
+    store.set('scout', m); audit(k === 'push' ? 'Pushed an innovation item' : 'Dismissed an innovation item', k === 'push' ? (AG_GROUPS.find(g => g[0] === to) || [0, to])[1] : ''); toast(k === 'push' ? 'Sent' : 'Dismissed'); keepRender();
+  }
   else if ((k === 'push' || k === 'dismiss') && AG.cap.db) {
     const to = (document.querySelector(`[data-ag-to="${a}"]`) || {}).value;
     try { await AG.cap.db.doc('scout/' + a).update(k === 'push' ? { status: 'pushed', pushedTo: [to], pushedAt: new Date().toISOString() } : { status: 'dismissed' }); audit(k === 'push' ? 'Pushed an innovation item' : 'Dismissed an innovation item', k === 'push' ? (AG_GROUPS.find(g => g[0] === to) || [0, to])[1] : ''); toast(k === 'push' ? 'Sent' : 'Dismissed'); }
