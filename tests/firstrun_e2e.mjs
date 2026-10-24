@@ -21,6 +21,7 @@ try {
   check((await p.textContent('.first-lead .login-err')).includes('Wrong set-up key'), 'wrong set-up key refused');
   await p.fill('.first-lead input[name=setup_token]', keys.setup_token); await p.click('.first-lead button[type=submit]');
   await p.waitForSelector('.login-ok'); check(true, 'lead account created from the sign-in screen');
+  check(!(await p.isVisible('.login-c input[name=code]')), '6-digit code box hidden until two-step sign-in is on');
   await p.fill('.login-c input[name=password]', pw); await p.click('.login-c button[type=submit]');
   await p.waitForSelector('#sync-badge', { timeout: 15000 }); check(true, 'signs in with the new account');
   const st = await (await fetch('http://localhost:8021/api/setup/status')).json(); check(st.open === false, 'set-up closes after the first account');
