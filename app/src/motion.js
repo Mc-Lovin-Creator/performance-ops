@@ -1,5 +1,9 @@
 /* ---------- v45 Muscles in Motion: real movement on the 3D body, with agonist, antagonist, synergist and fixator lit in colour.
    Roles from standard kinesiology (Neumann 2017) and EMG studies of each task. A role belongs to a task, not to a muscle. ---------- */
+SRC.ekstrom03 = { cite: 'Ekstrom RA, Donatelli RA, Soderberg GL. Surface electromyographic analysis of exercises for the trapezius and serratus anterior muscles. J Orthop Sports Phys Ther 2003;33(5):247-258', url: PM('Ekstrom 2003 surface electromyographic analysis trapezius serratus anterior') };
+SRC.fenwick09 = { cite: 'Fenwick CM, Brown SH, McGill SM. Comparison of different rowing exercises: trunk muscle activation and lumbar spine motion, load, and stiffness. J Strength Cond Res 2009;23(2):350-358', url: PM('Fenwick 2009 comparison of different rowing exercises trunk muscle activation') };
+SRC.saeter13 = { cite: 'Saeterbakken AH, Fimland MS. Effects of body position and loading modality on muscle activity and strength in shoulder presses. J Strength Cond Res 2013;27(7):1824-1831', url: PM('Saeterbakken 2013 body position loading modality shoulder presses') };
+SRC.falla04 = { cite: 'Falla DL, Jull GA, Hodges PW. Patients with neck pain demonstrate reduced electromyographic activity of the deep cervical flexor muscles during performance of the craniocervical flexion test. Spine 2004;29(19):2108-2114', url: PM('Falla 2004 deep cervical flexor craniocervical flexion test') };
 const ROLES_ = [['agonist', 'Agonist', '#ff3b2f', 'Prime mover: does most of the work'], ['antagonist', 'Antagonist', '#3b82f6', 'Opposes the movement, or brakes and controls it'], ['synergist', 'Synergist', '#f59e0b', 'Helps the agonist or refines the movement'], ['fixator', 'Fixator', '#14b8a6', 'Holds a body part still so the movement has a stable base']];
 const MOTIONS = [
   { id: 'curl', name: 'Elbow flexion', sub: 'Biceps curl', pops: ['sedentary', 'trained', 'competitive', 'elite'],
@@ -31,7 +35,43 @@ const MOTIONS = [
     phase: f => f.phase < 0.42 ? ['Cocking', 'arm externally rotates; the chest and front shoulder are stretched'] : f.phase < 0.55 ? ['Acceleration', 'internal rotators and triceps fire to swing the racket'] : f.phase < 0.78 ? ['Deceleration', 'the posterior cuff and back shoulder brake the arm eccentrically'] : ['Recovery', 'back to ready'],
     roles: { agonist: ['pec_major', 'lat_dorsi', 'subscapularis', 'triceps'], synergist: ['deltoid_ant', 'ext_oblique', 'rectus_abdominis'], antagonist: ['infraspinatus', 'teres_minor', 'deltoid_post'], fixator: ['serratus_ant', 'trapezius_lower', 'trapezius_upper', 'rhomboids', 'supraspinatus'] },
     simple: 'Chest, latissimus and subscapularis rotate the arm forward and the triceps straightens the elbow. The trunk rotators add speed from the legs and hips. After contact the back of the shoulder (infraspinatus, teres minor, rear deltoid) brakes the arm. The shoulder blade muscles hold the socket in place throughout.',
-    tip: 'The braking muscles are smaller than the accelerators, so they need their own strength work: eccentric external rotation.', padel: 'Bandeja, vibora and smash all follow this pattern; overload of the posterior cuff is a common overhead complaint.', src: ['escamilla09', 'neumann'] }
+    tip: 'The braking muscles are smaller than the accelerators, so they need their own strength work: eccentric external rotation.', padel: 'Bandeja, vibora and smash all follow this pattern; overload of the posterior cuff is a common overhead complaint.', src: ['escamilla09', 'neumann'] },
+  { id: 'row', name: 'Shoulder extension and scapular retraction', sub: 'Seated row', pops: ['sedentary', 'trained', 'competitive', 'elite'],
+    move: { flow: [{ shR: 80, shL: 80, elbR: 2, elbL: 2, t: 6 }, { shR: -12, shL: -12, sabR: 8, sabL: 8, elbR: 100, elbL: 100, t: 0 }], sec: 1.6 }, cam: 'lateral',
+    phase: f => f.i === 0 ? ['Pulling', 'concentric: the back muscles shorten and draw the shoulder blades together'] : ['Returning', 'eccentric: the back lengthens under control as the arms reach forward'],
+    roles: { agonist: ['lat_dorsi', 'rhomboids', 'deltoid_post', 'teres_major'], synergist: ['trapezius_lower', 'infraspinatus', 'teres_minor', 'biceps_brachii', 'brachialis', 'brachioradialis'], antagonist: ['pec_major', 'deltoid_ant', 'serratus_ant'], fixator: ['erector_spinae', 'multifidus', 'rectus_abdominis', 'ext_oblique', 'trapezius_upper'] },
+    simple: 'Latissimus dorsi and the rear deltoid pull the arms back while the rhomboids and trapezius draw the shoulder blades together. The elbow flexors help bend the elbows. The chest and front shoulder lengthen as they let go. The spine muscles and abdominals hold the trunk upright so the pull comes from the back, not from leaning.',
+    tip: 'Finish with the shoulder blades squeezed together and the shoulders down; leaning back turns it into a trunk exercise.', padel: 'Rows balance the pressing and overhead work of padel and help hold the shoulder blade in place for the smash.', src: ['fenwick09', 'neumann'] },
+  { id: 'press', name: 'Shoulder flexion and elbow extension overhead', sub: 'Standing overhead press', pops: ['trained', 'competitive', 'elite'],
+    move: { flow: [{ shR: 25, shL: 25, sabR: 55, sabL: 55, elbR: 115, elbL: 115 }, { shR: 168, shL: 168, sabR: 8, sabL: 8, elbR: 4, elbL: 4 }], sec: 1.7 }, cam: 'anterior',
+    phase: f => f.i === 0 ? ['Pressing', 'concentric: deltoids lift the arm and the triceps straightens the elbow'] : ['Lowering', 'eccentric: the same muscles lengthen to control the weight down'],
+    roles: { agonist: ['deltoid_ant', 'deltoid_mid', 'triceps'], synergist: ['trapezius_upper', 'serratus_ant', 'supraspinatus', 'pec_major'], antagonist: ['lat_dorsi', 'teres_major'], fixator: ['rectus_abdominis', 'ext_oblique', 'erector_spinae', 'glute_max', 'trapezius_lower', 'infraspinatus', 'subscapularis'] },
+    simple: 'The front and middle deltoid raise the arm and the triceps straightens the elbow. Upper trapezius and serratus anterior rotate the shoulder blade upward so the arm can go fully overhead. Latissimus dorsi lengthens as the arm rises. Standing, the abdominals, back and glutes brace to stop the lower back arching.',
+    tip: 'Standing presses ask more of the trunk than seated ones; ribs down and glutes squeezed keeps the lower back out of it.', padel: 'Overhead strength protects the shoulder in bandejas, viboras and smashes.', src: ['saeter13', 'neumann'] },
+  { id: 'punch', name: 'Scapular protraction', sub: 'Serratus punch', pops: ['sedentary', 'trained', 'competitive', 'elite'],
+    move: { flow: [{ shR: 22, elbR: 100 }, { shR: 90, elbR: 2 }], sec: 1.4 }, cam: 'lateral',
+    phase: f => f.i === 0 ? ['Reaching', 'serratus anterior wraps the shoulder blade forward around the ribs'] : ['Returning', 'the shoulder blade glides back under control'],
+    roles: { agonist: ['serratus_ant', 'pec_major', 'triceps'], synergist: ['deltoid_ant', 'pec_minor', 'coracobrachialis'], antagonist: ['rhomboids', 'trapezius_lower'], fixator: ['trapezius_upper', 'supraspinatus', 'infraspinatus', 'subscapularis', 'ext_oblique', 'int_oblique'] },
+    simple: 'Serratus anterior pulls the shoulder blade forward around the rib cage as the arm reaches, helped by the chest. The triceps straightens the elbow. The rhomboids let go and then bring the blade back. The rotator cuff keeps the ball centred in the socket.',
+    tip: 'Reach the last few centimetres "past" the straight arm: that end range is where serratus works hardest.', padel: 'A strong serratus keeps the shoulder blade flat on the ribs, which matters for every overhead shot.', src: ['ekstrom03', 'neumann'] },
+  { id: 'forehand', name: 'Trunk rotation into the stroke', sub: 'Forehand drive', pops: ['trained', 'competitive', 'elite'],
+    move: { flow: [{ thy: -35, shR: 25, sabR: 40, shrR: -25, elbR: 35, kneeR: 22, kneeL: 22, hipR: 12, hipL: 12 }, { thy: 32, shR: 60, sabR: 18, shrR: 25, elbR: 12, kneeR: 10, kneeL: 10, hipR: 5, hipL: 5 }], sec: 1.3 }, cam: 'smash',
+    phase: f => f.i === 0 ? ['Swing', 'legs and hips start it, the trunk turns, then the chest swings the arm'] : ['Recovery', 'the back of the shoulder and trunk brake and return to the take-back'],
+    roles: { agonist: ['ext_oblique', 'int_oblique', 'pec_major', 'subscapularis', 'deltoid_ant'], synergist: ['glute_max', 'lat_dorsi', 'biceps_brachii', 'forearm_flexors'], antagonist: ['infraspinatus', 'teres_minor', 'deltoid_post'], fixator: ['serratus_ant', 'trapezius_lower', 'rhomboids', 'forearm_extensors', 'multifidus', 'glute_med'] },
+    simple: 'The stroke starts in the legs and hips; the obliques turn the trunk and the chest and front shoulder swing the arm forward. The back of the shoulder lengthens and then brakes the arm after contact. The forearm muscles hold the wrist firm through impact.',
+    tip: 'Rotation speed comes from the hips and trunk first; an arm-only swing loads the shoulder and elbow more.', padel: 'Drives, lobs and volleys all chain the legs, trunk and arm in this order.', src: ['escamilla09', 'neumann'] },
+  { id: 'wrist', name: 'Wrist flexion', sub: 'Wrist curl', pops: ['sedentary', 'trained', 'competitive', 'elite'],
+    move: { flow: [{ shR: 10, elbR: 90, wrR: -40 }, { shR: 10, elbR: 90, wrR: 50 }], sec: 1.3 }, cam: 'wrist',
+    phase: f => f.i === 0 ? ['Curling', 'concentric: the wrist flexors on the palm side shorten'] : ['Lowering', 'eccentric: the flexors lengthen as the hand drops back'],
+    roles: { agonist: ['forearm_flexors', 'fcu', 'palmaris_longus'], synergist: ['fds', 'fdp', 'fpl'], antagonist: ['forearm_extensors', 'ecrl', 'extensor_digitorum'], fixator: ['biceps_brachii', 'brachialis', 'brachioradialis', 'anconeus'] },
+    simple: 'With the palm up, the wrist flexors on the inner forearm curl the hand up; the finger flexors help. The wrist extensors on the back of the forearm let go and then control the way down. The elbow muscles hold the forearm still.',
+    tip: 'Turn the palm down for a reverse curl to train the wrist extensors, the tendon group involved in tennis elbow.', padel: 'The wrist extensors work hard to hold the racket steady at contact, especially on the backhand.', src: ['morris89', 'neumann'] },
+  { id: 'chintuck', name: 'Upper neck flexion', sub: 'Chin tuck', pops: ['sedentary', 'trained', 'competitive', 'elite'],
+    move: { flow: [{}, { hd: 20, nk: -7 }], sec: 1.8 }, cam: 'neck',
+    phase: f => f.i === 0 ? ['Nodding', 'the deep neck flexors draw the chin back and down'] : ['Releasing', 'back to neutral'],
+    roles: { agonist: ['deep_neck_flexors'], synergist: ['suprahyoids', 'infrahyoids'], antagonist: ['suboccipitals', 'semispinalis', 'splenius'], fixator: ['trapezius_upper', 'rhomboids', 'erector_spinae'] },
+    simple: 'The small deep neck flexors (longus colli and capitis) nod the head as if saying yes, without bending the whole neck. The muscles at the back of the upper neck lengthen. Sternocleidomastoid should stay quiet; if it pops out, the big muscles are doing the job instead.',
+    tip: 'A slow, small nod held for 10 seconds is the basis of the craniocervical flexion test and exercise.', padel: 'Helps neck control and posture through long matches and after neck strains.', src: ['falla04', 'neumann'] }
 ];
 const MO = { id: store.get('motion') || 'curl', focus: null, mounted: false };
 const roleMap = m => { const out = {}; for (const [r, keys] of Object.entries(m.roles)) for (const k of keys) out[k] = r; return out; };
@@ -51,7 +91,7 @@ function motionLesson(m) {
       <p class="lab-src">${m.src.map(srcLink).join(' · ')} · Roles change with the task: a muscle that is an agonist in one movement can be an antagonist or a fixator in another.</p>
     </div></div>`;
 }
-const MO_CAM = { elbow: [[-1.55, 1.3, 1.25], [-0.18, 1.08, 0]], calf: [[0.05, 0.45, -1.5], [-0.09, 0.32, 0]], lateral: [[-3.1, 0.9, 1.0], [0, 0.72, 0]], anterior: [[0.2, 0.95, 3.4], [0, 0.78, 0]], smash: [[-2.3, 1.4, 2.3], [-0.1, 1.15, 0]] };
+const MO_CAM = { elbow: [[-1.55, 1.3, 1.25], [-0.18, 1.08, 0]], calf: [[0.05, 0.45, -1.5], [-0.09, 0.32, 0]], lateral: [[-3.1, 0.9, 1.0], [0, 0.72, 0]], anterior: [[0.2, 0.95, 3.4], [0, 0.78, 0]], smash: [[-2.3, 1.4, 2.3], [-0.1, 1.15, 0]], wrist: [[-1.5, 1.25, 0.45], [-0.22, 1.02, 0.12]], neck: [[-1.25, 1.62, 0.35], [0, 1.5, 0]] };
 function motionMount() {
   const host = document.getElementById('mo-host'); if (!host || !window.AnatomyLab) return;
   const m = MOTIONS.find(x => x.id === MO.id) || MOTIONS[0], L = AnatomyLab;

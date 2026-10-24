@@ -44,19 +44,39 @@ function tissueOf(s) {
   if (s.layer === 'nerve' && s.kind !== 'Nerve') return 'organ';
   return TISSUE[s.layer] ? s.layer : 'organ';
 }
-const HOLO_U = { uHolo: { value: 0 }, uTime: { value: 0 }, uHoloCol: { value: new THREE.Color(0x5eead4) } };
+const HOLO_U = { uHolo: { value: 0 }, uTime: { value: 0 }, uHoloCol: { value: new THREE.Color(0x5eead4) }, uBreath: { value: 0 } };
+/* breathing: 0 = end of exhale, 1 = end of a quiet breath in (deep breaths go to about 2.5) */
+const BREATH = { on: true, depth: 1, t: 0, b: 0, inhale: false };
+const BREATH_K = n => /diaphragm/.test(n) && !/fascia/.test(n) ? 1 : /lung|pleura|bronch/.test(n) ? 2 : /liver|stomach|spleen|kidney|suprarenal|colon|duodenum|jejunum|ileum|pancrea|gallbladder|caecum/.test(n) ? 3 : 0;
 const ORGAN_COL = [[/lung|lobe of lung|pleura/, 0xD9A5A0], [/bronch|trachea/, 0xD9C7B8], [/liver|segment of liver/, 0x7E3128], [/gallbladder|bile/, 0x5E7A3A], [/kidney|renal|suprarenal/, 0x8C3A2E], [/heart|atrium|ventricle|valve|leaflet|papillary|cusp/, 0xA6423A],
   [/stomach|oesophagus|duodenum|jejunum|ileum|colon|caecum|appendix|rectum|pharynx/, 0xD49A86], [/pancrea|salivary|parotid|submandibular|sublingual|thyroid|parathyroid|thymus|hypophysis|pineal/, 0xD8B07C], [/bladder|ureter/, 0xD7B3A3], [/tongue|palate|epiglottis|uvula|gingiva/, 0xC9706A],
   [/gyr|lobule|cerebell|culmen|declive|vermis|flocculus|nodule|lingula|tonsil|pons|midbrain|medulla|corpus callosum|cuneus|insula/, 0xE6CBC2], [/spinal cord/, 0xEFE2C8], [/eyeball|cornea|lens|retina|iris/, 0xF1EFEA]];
 let composer = null, aoPass = null; Lab.quality = (window.matchMedia && matchMedia('(max-width: 760px)').matches) ? 'fast' : 'cinematic';
 /* Tissue surface: fine striation along the muscle or collagen fibre direction, faded out by screen-space frequency so it only appears close up; porous mottling on bone */
-function tissue(mat, mode, fib) {
+function tissue(mat, mode, fib, br) {
   const perp = new THREE.Vector3().crossVectors(fib, Math.abs(fib.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)).normalize();
   mat.onBeforeCompile = sh => {
-    sh.uniforms.uFib = { value: fib }; sh.uniforms.uPerp = { value: perp }; sh.uniforms.uMode = { value: mode };
+    sh.uniforms.uFib = { value: fib }; sh.uniforms.uPerp = { value: perp }; sh.uniforms.uMode = { value: mode }; sh.uniforms.uBrK = { value: br ? br.k : 0 }; sh.uniforms.uBrY = { value: new THREE.Vector2(br ? br.y0 : 0, br ? br.y1 : 1) };
     Object.assign(sh.uniforms, HOLO_U);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vRest; varying vec3 vPerpV; uniform vec3 uPerp;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = position; vPerpV = normalize((modelViewMatrix * vec4(uPerp, 0.0)).xyz);');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vRest; varying vec3 vPerpV; uniform vec3 uPerp; uniform float uBreath; uniform float uBrK; uniform vec2 uBrY;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+vRest = position; vPerpV = normalize((modelViewMatrix * vec4(uPerp, 0.0)).xyz);
+if (uBreath > 0.0001) {
+  /* rest-space breathing, applied before skinning so it travels with the body. Ribs: lower ribs swing out (bucket handle), sternum lifts forward (pump handle) */
+  vec3 p = position; float ax = abs(p.x);
+  float wx = 1.0 - smoothstep(0.12, 0.165, ax), wy = smoothstep(0.99, 1.12, p.y) * (1.0 - smoothstep(1.37, 1.47, p.y)), wc = wx * wy;
+  float lower = 1.0 - smoothstep(1.12, 1.42, p.y);
+  transformed.x += p.x * 0.030 * uBreath * wc * (0.4 + 0.6 * lower);
+  transformed.z += (p.z + 0.03) * 0.040 * uBreath * wc;
+  transformed.y += 0.0035 * uBreath * wc;
+  /* abdominal wall moves forward as the diaphragm pushes the organs down */
+  float wa = smoothstep(0.86, 0.95, p.y) * (1.0 - smoothstep(1.06, 1.16, p.y)) * (1.0 - smoothstep(0.11, 0.15, ax));
+  transformed.z += 0.009 * uBreath * wa * smoothstep(-0.03, 0.08, p.z);
+  float h = clamp((p.y - uBrY.x) / max(0.001, uBrY.y - uBrY.x), 0.0, 1.0);
+  if (uBrK > 0.5 && uBrK < 1.5) transformed.y -= 0.016 * uBreath * h;
+  else if (uBrK < 2.5 && uBrK > 1.5) transformed.y -= 0.016 * uBreath * (1.0 - h);
+  else if (uBrK > 2.5) transformed.y -= 0.009 * uBreath;
+}`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying vec3 vRest; varying vec3 vPerpV; uniform vec3 uFib; uniform vec3 uPerp; uniform float uMode; uniform float uHolo; uniform float uTime; uniform vec3 uHoloCol;
 float hn(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
@@ -68,11 +88,15 @@ float along = dot(vRest, uFib), across = dot(vRest, uPerp);
 if (uMode > -0.5 && uMode < 0.5) {
   /* muscle: coarse fascicles (about 3 mm) always visible, fine fibres (about 1 mm) close up, both wandering slightly */
   float warp = 2.6 * vn(vRest * 55.0) + 1.1 * sin(along * 40.0);
-  float p1 = across * 1700.0 + warp, a1 = 0.20 * band(p1, 0.6);
+  /* fascicle bundles (about 9 mm), visible from a whole-body view */
+  float p0 = across * 700.0 + 0.6 * warp, a0 = 0.16 * band(p0, 0.5);
+  normal = normalize(normal + vPerpV * (cos(p0) * a0));
+  diffuseColor.rgb *= 1.0 - 0.16 * a0 / 0.16 * smoothstep(0.6, 1.0, 0.5 + 0.5 * cos(p0));
+  float p1 = across * 1700.0 + warp, a1 = 0.26 * band(p1, 0.6);
   float p2 = across * 5600.0 + 2.0 * vn(vRest * 180.0) + warp, a2 = 0.10 * band(p2, 0.9);
   normal = normalize(normal + vPerpV * (cos(p1) * a1 + cos(p2) * a2));
   float groove = smoothstep(0.55, 1.0, 0.5 + 0.5 * cos(p1));
-  diffuseColor.rgb *= 1.0 - 0.22 * a1 / 0.20 * groove - 0.06 * a2 / 0.10 * (0.5 + 0.5 * sin(p2));
+  diffuseColor.rgb *= 1.0 - 0.26 * a1 / 0.26 * groove - 0.06 * a2 / 0.10 * (0.5 + 0.5 * sin(p2));
   diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.18, 0.9, 0.86), 0.25 * vn(vRest * 30.0));
 } else if (uMode < 1.5) {
   /* tendon, ligament, nerve: tight parallel collagen bundles with crimp */
@@ -101,7 +125,7 @@ if (uHolo > 0.5) {
   gl_FragColor = vec4(hc, clamp(0.05 + 0.85 * fr, 0.0, 1.0));
 }`);
   };
-  mat.customProgramCacheKey = () => 'tissue' + mode;
+  mat.customProgramCacheKey = () => 'tissue2' + mode;
 }
 
 /* ---------- loading ---------- */
@@ -183,7 +207,8 @@ function buildMeshes(pk = meta, off0 = 0) {
       let a = 0, bst = -1; for (let k = 0; k < vn; k += 3) { const dd = tmpV.fromBufferAttribute(P, k).distanceToSquared(c); if (dd > bst) { bst = dd; a = k; } }
       const A = new THREE.Vector3().fromBufferAttribute(P, a); let b = 0; bst = -1; for (let k = 0; k < vn; k += 3) { const dd = tmpV.fromBufferAttribute(P, k).distanceToSquared(A); if (dd > bst) { bst = dd; b = k; } }
       const fib = new THREE.Vector3().fromBufferAttribute(P, b).sub(A).normalize(); if (!isFinite(fib.x) || fib.lengthSq() < 0.5) fib.set(0, 1, 0);
-      tissue(mat, T.mode, fib); }
+      let y0 = 9, y1 = -9; for (let k = 0; k < vn; k++) { const y = P.getY(k); if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      tissue(mat, T.mode, fib, { k: BREATH_K(s.name), y0, y1 }); }
     mat.userData.tissue = tt;
     mat.userData.base = base.clone();
     const m = new THREE.SkinnedMesh(g, mat);
@@ -248,7 +273,7 @@ function applyPose(p) {
   for (const s of ['R', 'L']) J['elbow_' + s].rotation.x = -6 * D2R;
   angles = { hip: 0, knee: 0, ankle: 0, trunk: 0, shoulder: 0, valgus: 0 };
   let acl = false; const y0 = P0.y;
-  if (q.breathe !== undefined) J.thorax.rotation.x = -0.01 * q.breathe;
+  if (BREATH.on) J.thorax.rotation.x += -0.012 * BREATH.b * BREATH.depth;
   if (q.custom) {
     const c = CUSTOM;
     root.rotation.x = c.trunk * 0.5 * D2R; J.lumbar.rotation.x = c.trunk * 0.5 * D2R; J.thorax.rotation.y = c.rot * D2R;
@@ -264,8 +289,10 @@ function applyPose(p) {
     for (const sd of ['R', 'L']) {
       J['hip_' + sd].rotation.set(-(v('hip', sd) + v('t')) * D2R, (sd === 'R' ? 1 : -1) * v('hrot', sd) * D2R, abd(sd, v('hab', sd)));
       J['knee_' + sd].rotation.x = v('knee', sd) * D2R; J['ankle_' + sd].rotation.x = -v('ank', sd) * D2R;
-      J['shoulder_' + sd].rotation.set(-v('sh', sd) * D2R, 0, abd(sd, v('sab', sd))); J['elbow_' + sd].rotation.x = -(6 + v('elb', sd)) * D2R;
+      J['shoulder_' + sd].rotation.set(-v('sh', sd) * D2R, (sd === 'R' ? 1 : -1) * v('shr', sd) * D2R, abd(sd, v('sab', sd))); J['elbow_' + sd].rotation.x = -(6 + v('elb', sd)) * D2R;
+      if (J['wrist_' + sd]) J['wrist_' + sd].rotation.x = -v('wr', sd) * D2R;
     }
+    if (J.neck) J.neck.rotation.x = v('nk') * D2R; if (J.head) J.head.rotation.x = v('hd') * D2R;
     FLOW.lift = v('lift'); FLOW.f = f; FLOW.i = i;
     angles = { hip: v('hip', 'R') + v('t'), knee: v('knee', 'R'), ankle: v('ank', 'R'), trunk: v('t'), shoulder: v('sh', 'R'), elbow: v('elb', 'R'), valgus: 0 };
   }
@@ -433,10 +460,13 @@ function addPin(id, clientX, clientY) {
 /* ---------- camera ---------- */
 function jp(name) { return J[name] ? J[name].getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 0.9, 0); }
 function views() {
-  const k = jp('knee_R'), a = jp('ankle_R'), s = jp('shoulder_R'), e = jp('elbow_R'), t = jp('thorax');
+  const k = jp('knee_R'), a = jp('ankle_R'), s = jp('shoulder_R'), e = jp('elbow_R'), t = jp('thorax'), hp = jp('hip_R'), w = jp('wrist_R'), n = jp('neck'), hd = jp('head'), l = jp('lumbar');
   return { anterior: [[0, 1.0, 3.1], [0, 0.86, 0]], posterior: [[0, 1.0, -3.1], [0, 0.86, 0]], lateral: [[-3.1, 1.0, 0.05], [0, 0.86, 0]],
     knee: [[k.x - 0.45, k.y + 0.12, k.z + 0.62], [k.x, k.y, k.z]], ankle: [[a.x - 0.42, a.y + 0.14, a.z + 0.48], [a.x, a.y, a.z + 0.04]],
-    shoulder: [[s.x - 0.6, s.y + 0.15, s.z + 0.62], [s.x, s.y - 0.05, s.z]], elbow: [[e.x - 0.6, e.y + 0.1, e.z + 0.45], [e.x, e.y, e.z]], spine: [[0.85, t.y + 0.15, t.z - 1.15], [0, t.y, t.z]] };
+    shoulder: [[s.x - 0.6, s.y + 0.15, s.z + 0.62], [s.x, s.y - 0.05, s.z]], elbow: [[e.x - 0.6, e.y + 0.1, e.z + 0.45], [e.x, e.y, e.z]], spine: [[0.85, t.y + 0.15, t.z - 1.15], [0, t.y, t.z]],
+    hip: [[hp.x - 0.5, hp.y + 0.1, hp.z + 0.6], [hp.x, hp.y, hp.z]], hand: [[w.x - 0.32, w.y + 0.02, w.z + 0.32], [w.x, w.y - 0.08, w.z + 0.01]],
+    neck: [[n.x - 0.38, n.y + 0.04, n.z + 0.42], [n.x, n.y - 0.02, n.z + 0.02]], head: [[-0.22, hd.y + 0.1, 0.55], [0, hd.y + 0.07, 0.02]],
+    chest: [[-0.1, t.y + 0.1, 1.05], [0, t.y + 0.07, 0.02]], back: [[0.3, l.y + 0.12, -0.9], [0, l.y + 0.02, l.z]] };
 }
 function flyTo(name) { const v = views()[name]; if (!v) return; userMoved = true; camAnim = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: new THREE.Vector3(...v[0]), t1: new THREE.Vector3(...v[1]) }; }
 function fitCamera() {
@@ -448,6 +478,15 @@ function resize() {
   renderer.setSize(w, h, false); if (composer) composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); if (!userMoved && !camAnim) fitCamera();
 }
 
+/* ---------- breathing: about 12 breaths a minute at rest, 20 during a movement; breath in takes 40% of the cycle ---------- */
+function breathTick(dt) {
+  const period = state.move === 'idle' ? 5 : 3; BREATH.t = (BREATH.t + dt / period) % 1; const u = BREATH.t;
+  const b = u < 0.4 ? 0.5 - 0.5 * Math.cos(Math.PI * u / 0.4) : 0.5 + 0.5 * Math.cos(Math.PI * (u - 0.4) / 0.6);
+  BREATH.inhale = u < 0.4; BREATH.b = b; HOLO_U.uBreath.value = BREATH.on ? b * BREATH.depth : 0;
+}
+Lab.breath = (on, depth) => { BREATH.on = !!on; if (depth) BREATH.depth = depth; if (!on) HOLO_U.uBreath.value = 0; };
+Lab.breathAt = b => { BREATH.b = b; HOLO_U.uBreath.value = BREATH.on ? b * BREATH.depth : 0; };
+Lab.breathState = () => ({ on: BREATH.on, depth: BREATH.depth, inhale: BREATH.inhale, b: BREATH.b });
 /* ---------- loop ---------- */
 let lastTop = 0, topCache = [];
 function frame(t) {
@@ -455,7 +494,7 @@ function frame(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016); lastT = t;
   if (loaded) {
     if (state.playing) state.phase = (state.phase + dt * state.speed / MOVES[state.move].dur) % 1;
-    applyPose(state.phase); colourFrame(state.playing ? dt : 0.0001); explodeFrame(); HOLO_U.uTime.value = t / 1000;
+    if (state.playing) breathTick(dt); applyPose(state.phase); colourFrame(state.playing ? dt : 0.0001); explodeFrame(); HOLO_U.uTime.value = t / 1000;
   }
   if (camAnim) { camAnim.t = Math.min(1, camAnim.t + dt * 1.1); const e = camAnim.t < 0.5 ? 4 * camAnim.t ** 3 : 1 - Math.pow(-2 * camAnim.t + 2, 3) / 2; camera.position.lerpVectors(camAnim.p0, camAnim.p1, e); controls.target.lerpVectors(camAnim.t0, camAnim.t1, e); if (camAnim.t >= 1) camAnim = null; }
   if (STORY.on && STORY.live) { STORY.t += dt; Lab.story(STORY.t); }

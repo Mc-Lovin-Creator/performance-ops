@@ -14,3 +14,4 @@ app/assets/img/
 *.xlsx
 frontend/public/*.png
 frontend/public/*.webmanifest
+tests/_pose.mjs
