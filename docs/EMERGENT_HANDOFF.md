@@ -4,9 +4,12 @@ This repo is laid out the way Emergent runs projects: `frontend/` on port 3000 (
 
 ## First run in Emergent
 
-Follow the staged guide in [`deploy/README.md`](../deploy/README.md): stage 0 (prepare) to stage 6 (go-live), each with a paste-in prompt and a check script. The repo is the master copy; changes go through [`deploy/CHANGES.md`](../deploy/CHANGES.md).
+Start with [`EMERGENT_START.md`](../EMERGENT_START.md). Every prompt to paste, in order, is in [`deploy/PASTE.md`](../deploy/PASTE.md). The full stage guides (0 prepare to 6 go-live) are in [`deploy/README.md`](../deploy/README.md). The repo is the master copy, and changes go through [`deploy/CHANGES.md`](../deploy/CHANGES.md).
 
 ## Instructions for the Emergent agent
+
+The short, strict version is [`deploy/EMERGENT_RULES.md`](../deploy/EMERGENT_RULES.md). Every stage prompt tells the agent to read it.
+
 
 The short, strict version is [`deploy/EMERGENT_RULES.md`](../deploy/EMERGENT_RULES.md); every stage prompt tells the agent to read it.
 
@@ -26,6 +29,8 @@ The short, strict version is [`deploy/EMERGENT_RULES.md`](../deploy/EMERGENT_RUL
 | --- | --- | --- | --- |
 | GET | /api/health | anyone | liveness |
 | POST | /api/auth/login | anyone | email + password, returns a 12-hour token (10 tries per 5 min) |
+| POST | /api/auth/password | signed in | change own password (`old`, `new`) |
+| POST | /api/setup/first-lead | set-up only | first lead account; works only with `SETUP_TOKEN` and no accounts yet |
 | POST | /api/auth/password | signed in | change own password (`old`, `new`) |
 | POST | /api/setup/first-lead | set-up only | first lead account; works only with `SETUP_TOKEN` and no accounts yet |
 | GET | /api/auth/me | signed in | user and the keys they may read |

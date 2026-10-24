@@ -223,14 +223,17 @@ class FirstRunAndPasswords(unittest.TestCase):
         os.environ.pop("SETUP_TOKEN", None)
         body = {"email": "lead@lab.test", "password": PW, "setup_token": "s" * 40}
         self.assertEqual(c.post("/api/setup/first-lead", json=body).status_code, 404)   # no key set: route is off
+        self.assertFalse(c.get("/api/setup/status").json()["open"])
         os.environ["SETUP_TOKEN"] = "s" * 40
         try:
+            self.assertTrue(c.get("/api/setup/status").json()["open"])
             self.assertEqual(c.post("/api/setup/first-lead", json=dict(body, setup_token="t" * 40)).status_code, 403)
             self.assertEqual(c.post("/api/setup/first-lead", json=dict(body, password="short")).status_code, 400)
             r = c.post("/api/setup/first-lead", json=body)
             self.assertEqual(r.status_code, 201)
             self.assertEqual((r.json()["user"]["role"], r.json()["user"]["p1"]), ("lead", True))
             self.assertEqual(c.post("/api/setup/first-lead", json=dict(body, email="second@lab.test")).status_code, 404)  # never again
+            self.assertFalse(c.get("/api/setup/status").json()["open"])
             login(c, "lead@lab.test")
         finally:
             os.environ.pop("SETUP_TOKEN", None)

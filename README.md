@@ -1,4 +1,8 @@
-# Performance Lab OS
+# Performance Ops
+
+**We keep punching above our weight.**
+
+> **Deploying to Emergent?** Start at [`EMERGENT_START.md`](EMERGENT_START.md). Every prompt to paste is in [`deploy/PASTE.md`](deploy/PASTE.md).
 
 Private clinical and performance platform for the Abu Dhabi performance lab: Player 1 first, then the squad, the team and the facility.
 Every test, prescription and teaching card carries its source and an evidence grade.
@@ -14,6 +18,8 @@ Every test, prescription and teaching card carries its source and an evidence gr
 | `tests/` | Static checks (evidence links, data classification, secrets, syntax) and a browser smoke test of every page. |
 | `tools/anatomy-pipeline/` | How the anatomy pack was made from the Z-Anatomy atlas (reproducible, not needed to run the app). |
 | `deploy/` | Staged deployment to Emergent: guides, paste-in prompts, status tracker. `scripts/` has the key maker, first-account and stage check scripts. |
+| `deploy/` | Staged deployment to Emergent: [stage guides](deploy/README.md), [paste-in prompts](deploy/PASTE.md), [agent rules](deploy/EMERGENT_RULES.md), [change loop](deploy/CHANGES.md), [status tracker](deploy/STATUS.md). |
+| `scripts/` | `gen_keys.py` (server keys), `first_lead.py` (first account), `check_deploy.py` (checks each stage). Standard library only; run on your computer. |
 | `docs/` | Emergent hand-off, security model, evidence policy, licences, UAE hosting checklist, wearable sync set-up, 90-day plan. |
 
 ## Deploy

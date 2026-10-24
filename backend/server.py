@@ -321,6 +321,11 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         await audit(None, "first lead created", u["email"], "remove SETUP_TOKEN now", req=req)
         return JSONResponse({"user": public_user(u)}, status_code=201)
 
+    async def setup_status(req: Request):
+        """Tells the sign-in screen whether to offer 'create the first lead account' (no accounts yet and SETUP_TOKEN set)."""
+        tok = os.environ.get("SETUP_TOKEN", "")
+        return JSONResponse({"open": len(tok) >= 32 and not await store.list_users()})
+
     @needs_user
     async def change_password(req, user: User):
         try:
@@ -385,6 +390,7 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         Route("/api/auth/me", me),
         Route("/api/auth/password", change_password, methods=["POST"]),
         Route("/api/setup/first-lead", first_lead, methods=["POST"]),
+        Route("/api/setup/status", setup_status),
         Route("/api/auth/2fa/setup", twofa_setup, methods=["POST"]),
         Route("/api/auth/2fa/enable", twofa_enable, methods=["POST"]),
         Route("/api/state", state_all),

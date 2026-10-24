@@ -60,6 +60,7 @@ const SYNC = (() => {
       <label class="field login-code" ${S2.needCode ? '' : 'hidden'}>6-digit code from your authenticator app<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8"></label>
       ${msg ? `<p class="login-err">${esc(msg)}</p>` : ''}<button class="btn primary" type="submit">Sign in</button></form>`;
     document.body.appendChild(o);
+    req('GET', '/setup/status').then(r => { if (r.ok && r.body.open) firstLead(o); }).catch(() => { });
     o.querySelector('form').addEventListener('submit', async e => {
       e.preventDefault(); const f = new FormData(e.target), btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Signing in…';
       try {
@@ -68,6 +69,26 @@ const SYNC = (() => {
         clearLocal(); S2.token = r.body.token; S2.user = r.body.user; S2.ver = {}; ss.set('token', S2.token); ss.set('user', S2.user);
         await pull(true); store.set('me', S2.user.person); location.reload();
       } catch (err) { o.remove(); loginOverlay('Cannot reach the server'); }
+    });
+  }
+  function firstLead(o) {
+    const c = o.querySelector('.login-c'); const f = document.createElement('form'); f.className = 'login-c first-lead'; f.autocomplete = 'off';
+    f.innerHTML = `<span class="eyebrow">Performance Ops · first run</span><p class="login-slogan">We keep punching above our weight.</p><h1>Create the first lead account</h1>
+      <p class="muted">This server has no accounts yet. Use the set-up key (SETUP_TOKEN) you added to Emergent. This works once; remove SETUP_TOKEN afterwards.</p>
+      <label class="field">Set-up key<input name="setup_token" type="password" required autocomplete="off"></label>
+      <label class="field">Your email<input name="email" type="email" required autocomplete="username"></label>
+      <label class="field">Your person in the app<select name="person">${(typeof PEOPLE !== 'undefined' ? PEOPLE : []).map(p => `<option value="${esc(p.id)}"${p.id === 'jp' ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
+      <label class="field">New password (12+ characters)<input name="password" type="password" minlength="12" required autocomplete="new-password"></label>
+      <label class="field">Again<input name="again" type="password" minlength="12" required autocomplete="new-password"></label><p class="login-err" hidden></p>
+      <button class="btn primary" type="submit">Create lead account</button>`;
+    c.hidden = true; c.parentNode.insertBefore(f, c);
+    f.addEventListener('submit', async e => {
+      e.preventDefault(); const d = new FormData(f), er = f.querySelector('.login-err'), show = m => { er.hidden = false; er.textContent = m; };
+      if (d.get('password') !== d.get('again')) return show('The two passwords differ');
+      const r = await req('POST', '/setup/first-lead', { setup_token: d.get('setup_token'), email: d.get('email'), person: d.get('person'), password: d.get('password') });
+      if (!r.ok) return show(r.status === 403 ? 'Wrong set-up key' : r.status === 404 ? 'Set-up is closed: an account already exists' : (r.body.error || 'Not created'));
+      const em = d.get('email'); f.remove(); c.hidden = false; const n = c.querySelector('input[name=email]'); if (n) n.value = em;
+      const p = document.createElement('p'); p.className = 'login-ok'; p.textContent = 'Lead account created. Now remove SETUP_TOKEN in Emergent, then sign in.'; c.insertBefore(p, c.querySelector('label'));
     });
   }
   async function twoStep() {

@@ -1,6 +1,6 @@
 # Deploying Performance Ops to Emergent
 
-**We keep punching above our weight.** Start here: [`../EMERGENT_START.md`](../EMERGENT_START.md)
+**We keep punching above our weight.** Start here: [`../EMERGENT_START.md`](../EMERGENT_START.md). Every prompt to paste, in order: [`PASTE.md`](PASTE.md).
 
 **The GitHub repo is the master copy. Emergent only runs it.** Every change is made here, in the repo, and then pulled into Emergent. Nothing is changed only inside Emergent, so you can always edit, review, roll back and move host without losing work.
 
