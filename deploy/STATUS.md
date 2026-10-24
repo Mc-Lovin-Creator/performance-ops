@@ -4,9 +4,9 @@ Edit this file as you go (on GitHub: pencil icon, then commit to `main`). One li
 
 | Stage | Status | Date | Commit or tag | Notes |
 | --- | --- | --- | --- | --- |
-| 0 Prepare | ready to start | | deploy-stage-0 | |
-| 1 Import and run | not started | | deploy-stage-1 | |
-| 2 First accounts | not started | | deploy-stage-2 | |
+| 0 Prepare | done | 2026-10-24 | 3653d68 | Repo moved to performance-ops; keys made |
+| 1 Import and run | done | 2026-10-24 | b34e690 | Emergent project "punchline-ops"; stage 1 check PASSED |
+| 2 First accounts | in progress | 2026-10-24 | | Lead account made, two-step on, SETUP_TOKEN edited to off; team still to add |
 | 3 Staging run-through | not started | | deploy-stage-3 | |
 | 4 Wearables (optional) | not started | | deploy-stage-4 | |
 | 5 Hosting and domain | not started | | deploy-stage-5 | |
@@ -16,9 +16,9 @@ Edit this file as you go (on GitHub: pencil icon, then commit to `main`). One li
 
 | | Staging | Production |
 | --- | --- | --- |
-| Emergent project or host | | |
-| App URL | | |
-| API URL | | |
+| Emergent project or host | punchline-ops (Emergent) | |
+| App URL | https://e10fc9b4-ceae-41a4-b1e7-eff3ad775b77.preview.emergentagent.com (preview) | |
+| API URL | same address, /api | |
 | Database name | performance_ops_staging | performance_ops |
 | Keys stored as (password manager entry) | Performance Ops: staging | Performance Ops: production |
 
