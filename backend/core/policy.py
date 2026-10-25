@@ -31,7 +31,7 @@ KEYS: dict[str, str] = {
     # Player 1 clinical
     "daily": "p1", "p1inj": "p1", "p1sess": "p1", "p1test": "p1", "p1share": "p1",
     "p1shown": "p1", "p1vis": "p1", "rdy": "p1", "normv": "p1", "wear": "p1",
-    "p1vmeta": "p1", "p1emr_patients": "p1", "p1emr": "p1", "p1vaudit": "p1",
+    "rt-cfg": "p1", "rt-today": "p1", "p1vmeta": "p1", "p1emr_patients": "p1", "p1emr": "p1", "p1vaudit": "p1",
 }
 
 # team keys an athlete may write (everything else in team is staff-only)

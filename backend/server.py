@@ -32,7 +32,9 @@ from core.scout import Scout, LANES as SCOUT_LANES, feeds_from_env
 
 log = logging.getLogger("plos")
 MAX_VALUE_BYTES = 2_000_000
-LOGIN_WINDOW, LOGIN_MAX = 300, 10
+LOGIN_WINDOW, LOGIN_MAX = 300, 10          # per device and account
+ACCOUNT_WINDOW, ACCOUNT_MAX = 900, 30       # per account, from anywhere
+_DUMMY_HASH = None
 
 
 def _load_env():
@@ -67,7 +69,8 @@ class SecurityHeaders:
         async def send2(msg):
             if msg["type"] == "http.response.start":
                 msg.setdefault("headers", [])
-                msg["headers"] += [(b"x-content-type-options", b"nosniff"), (b"cache-control", b"no-store"), (b"referrer-policy", b"no-referrer")]
+                msg["headers"] += [(b"x-content-type-options", b"nosniff"), (b"cache-control", b"no-store"), (b"referrer-policy", b"no-referrer"),
+                                    (b"strict-transport-security", b"max-age=31536000; includeSubDomains"), (b"x-frame-options", b"DENY")]
             await send(msg)
         await self.app(scope, receive, send2)
 
@@ -82,11 +85,11 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         h = req.headers.get("authorization", "")
         if not h.lower().startswith("bearer "):
             return None
-        uid = keys.subject(h[7:].strip())
-        if not uid:
+        c = keys.claims(h[7:].strip())
+        if not c:
             return None
-        u = await store.user_by_id(uid)
-        if not u or not u.get("active", True):
+        u = await store.user_by_id(c["sub"])
+        if not u or not u.get("active", True) or int(c.get("tv", 0)) != int(u.get("tv", 0)):
             return None
         return User(id=u["id"], email=u["email"], role=u["role"], person=u.get("person", ""), p1=bool(u.get("p1")), totp=bool(u.get("totp_on")))
 
@@ -102,6 +105,12 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
             return await fn(req, u)
         return wrapped
 
+    async def bump_tv(uid: str) -> int:
+        u = await store.user_by_id(uid) or {}
+        tv = int(u.get("tv", 0)) + 1
+        await store.update_user(uid, {"tv": tv})
+        return tv
+
     async def health(req):
         return JSONResponse({"ok": True, "time": time.time()})
 
@@ -111,14 +120,21 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
             email, password = str(body["email"]).strip().lower(), str(body["password"])
         except Exception:
             return err(400, "email and password required")
-        bucket = attempts[(req.client.host if req.client else "") + "|" + email]
+        global _DUMMY_HASH
         now = time.time()
-        while bucket and now - bucket[0] > LOGIN_WINDOW:
-            bucket.popleft()
-        if len(bucket) >= LOGIN_MAX:
+        bucket, acct = attempts[(req.client.host if req.client else "") + "|" + email], attempts["acct|" + email]
+        for b, win in ((bucket, LOGIN_WINDOW), (acct, ACCOUNT_WINDOW)):
+            while b and now - b[0] > win:
+                b.popleft()
+        if len(bucket) >= LOGIN_MAX or len(acct) >= ACCOUNT_MAX:
             return err(429, "too many attempts, wait a few minutes")
         bucket.append(now)
+        acct.append(now)
         u = await store.user_by_email(email)
+        if not u:
+            # same work as a real check, so response time does not reveal which emails have accounts
+            _DUMMY_HASH = _DUMMY_HASH or hash_password("x" * 24)
+            verify_password(password, _DUMMY_HASH)
         if not u or not u.get("active", True) or not verify_password(password, u.get("password_hash", "")):
             await audit(None, "login failed", email, req=req)
             return err(401, "wrong email or password")
@@ -126,18 +142,21 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
             code = str(body.get("code") or "")
             if not code:
                 return err(401, "enter the 6-digit code from your authenticator app", need_code=True)
-            if not totp.verify(keys.open(u["totp_secret"]), code):
+            step = totp.match_step(keys.open(u["totp_secret"]), code)
+            if step is None or step <= int(u.get("totp_last", -1)):
                 await audit(None, "login failed (code)", email, req=req)
-                return err(401, "wrong code", need_code=True)
+                return err(401, "wrong or already used code", need_code=True)
+            await store.update_user(u["id"], {"totp_last": step})
         bucket.clear()
         await audit(User(u["id"], u["email"], u["role"], u.get("person", ""), bool(u.get("p1"))), "login", req=req)
         pu = public_user(u)
         pu["needs_2fa"] = bool(require_2fa_p1 and u.get("p1") and not u.get("totp_on"))
-        return JSONResponse({"token": keys.issue(u["id"]), "user": pu})
+        return JSONResponse({"token": keys.issue(u["id"], tv=int(u.get("tv", 0))), "user": pu, "scopes": {k: scope_of(k) for k in readable_keys(User(u["id"], u["email"], u["role"], u.get("person", ""), bool(u.get("p1"))))}})
 
     @needs_user
     async def me(req, user: User):
-        return JSONResponse({"user": user.__dict__, "keys": readable_keys(user)})
+        ks = readable_keys(user)
+        return JSONResponse({"user": user.__dict__, "keys": ks, "scopes": {k: scope_of(k) for k in ks}})
 
     async def _read(user: User, key: str):
         doc = await store.get_state(storage_scope_id(user, key), key)
@@ -275,6 +294,16 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
 
     @needs_user
     async def twofa_setup(req, user: User):
+        if user.totp:
+            # changing an authenticator that is already on needs the password and a current code, so a stolen session cannot re-bind it
+            try:
+                b = await req.json()
+            except Exception:
+                b = {}
+            u = await store.user_by_id(user.id)
+            if not verify_password(str(b.get("password", "")), u.get("password_hash", "")) or not totp.verify(keys.open(u["totp_secret"]), str(b.get("code", ""))):
+                await audit(user, "2fa change refused", req=req)
+                return err(403, "enter your password and a current code to change two-step sign-in", reason="reauth")
         secret = totp.new_secret()
         await store.update_user(user.id, {"totp_pending": keys.seal(secret)})
         await audit(user, "2fa setup started", req=req)
@@ -288,11 +317,13 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
             secret = keys.open(u["totp_pending"])
         except Exception:
             return err(400, "start setup first")
-        if not totp.verify(secret, code):
+        step = totp.match_step(secret, code)
+        if step is None:
             return err(400, "that code did not match; check the time on your phone")
-        await store.update_user(user.id, {"totp_secret": keys.seal(secret), "totp_on": True, "totp_pending": None})
+        await store.update_user(user.id, {"totp_secret": keys.seal(secret), "totp_on": True, "totp_pending": None, "totp_last": step})
+        await bump_tv(user.id)   # every older session ends; sign in again with the code
         await audit(user, "2fa enabled", req=req)
-        return JSONResponse({"ok": True})
+        return JSONResponse({"ok": True, "signed_out": True})
 
     def lead_only(fn):
         async def wrapped(req, user: User):
@@ -340,8 +371,9 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
             return err(400, str(e))
         except Exception:
             return err(400, "old and new password required")
-        await audit(user, "password changed", req=req)
-        return JSONResponse({"ok": True})
+        tv = await bump_tv(user.id)   # other sessions end; this one gets a fresh token
+        await audit(user, "password changed", "other sessions ended", req=req)
+        return JSONResponse({"ok": True, "token": keys.issue(user.id, tv=tv)})
 
     @lead_only
     async def users(req, user: User):
@@ -378,6 +410,8 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         if "password" in b:
             fields["password_hash"] = hash_password(str(b["password"]))
         await store.update_user(uid, fields)
+        if fields:
+            await bump_tv(uid)   # access changed: that person signs in again
         await audit(user, "user changed", uid, ", ".join(k for k in fields if k != "password_hash") + (", password" if "password_hash" in fields else ""), req=req)
         return JSONResponse({"ok": True})
 

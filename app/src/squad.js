@@ -1,6 +1,6 @@
 /* ---------- v33: every squad athlete gets Player 1's structure: overview, load (time only), testing and prescription ---------- */
-let SQMIN = store.get('sqmin') || {};   /* {aid: {iso: {min, during, morning}}} */
-let SQCAP = store.get('sqcap') || {};   /* {aid: weekly minute cap} */
+let SQMIN = store.get('sqmin') || demo({}, {});   /* {aid: {iso: {min, during, morning}}} */
+let SQCAP = store.get('sqcap') || demo({}, {});   /* {aid: weekly minute cap} */
 const sqISO = d => { const x = new Date(TODAY); x.setDate(x.getDate() - d); return ISO(x); };
 const sqPop = a => a.tier >= 4 ? 'elite' : a.tier === 3 ? 'competitive' : a.tier >= 1 ? 'trained' : 'sedentary';
 function sqSeries(a) {

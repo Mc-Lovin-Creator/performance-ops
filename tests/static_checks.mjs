@@ -27,9 +27,9 @@ console.log(`evidence: ${defined.size} sources defined, ${used.size} citations c
 
 // 2. store keys classified
 const policy = readFileSync(join(ROOT, 'backend', 'core', 'policy.py'), 'utf8');
-const classified = new Set([...policy.matchAll(/"([A-Za-z0-9_]+)": "(user|team|clinic|p1)"/g)].map(m => m[1]));
+const classified = new Set([...policy.matchAll(/"([A-Za-z0-9_-]+)": "(user|team|clinic|p1)"/g)].map(m => m[1]));
 const keys = new Set();
-for (const [, s] of all) for (const m of s.matchAll(/store\.(?:get|set)\('([A-Za-z0-9_]+)'/g)) keys.add(m[1]);
+for (const [, s] of all) for (const m of s.matchAll(/store\.(?:get|set)\('([A-Za-z0-9_-]+)'/g)) keys.add(m[1]);
 for (const k of keys) if (!classified.has(k)) bad(`store key "${k}" is not classified in backend/core/policy.py`);
 console.log(`policy: ${keys.size} store keys, all classified: ${[...keys].every(k => classified.has(k))}`);
 

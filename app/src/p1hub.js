@@ -30,37 +30,39 @@ function pageP1Tx() {
 }
 
 /* Injuries: current injury, timeline and the log */
-let INJ = store.get('p1inj', null) || [{ id: 'i1', date: '2026-09-18', region: 'Right foot and arch', dx: 'Spring ligament sprain, mild (higher-mild, edging into moderate). No tear; two nearby tendons slightly irritated.', mech: 'Padel, change of direction', sev: 'Moderate', status: 'Active' }];
+let INJ = store.get('p1inj', null) || demo([{ id: 'i1', date: '2026-09-18', region: 'Right foot and arch', dx: 'Spring ligament sprain, mild (higher-mild, edging into moderate). No tear; two nearby tendons slightly irritated.', mech: 'Padel, change of direction', sev: 'Moderate', status: 'Active' }], []);
 function pageP1Inj() {
   const g = p1Gate(); if (g) return g;
   if (!perm().clinical) return p1Head('p1inj', 'Injuries', 'clinical only') + locked('Injury details are visible to the clinical team only.');
   const T = rtSync(), cur = INJ.filter(i => i.status === 'Active'), wk = T.p ? T.p.week : null;
-  const tl = [[RT.iso(new Date(RT.PLAN_START.getTime() - 2 * 864e5)), 'Scan: mild spring ligament sprain, no tear'], [RT.iso(RT.PLAN_START), 'Graded return starts · Calm it down'], [RT.iso(new Date(RT.PLAN_START.getTime() + 7 * 864e5)), 'Rebuild phase'], [RT.iso(new Date(RT.PLAN_START.getTime() + 28 * 864e5)), 'Get strong phase · plyometrics started and tolerated'], [TODAY_ISO, `Today · week ${wk} of ${RT.WEEKS} · ${RT_STW[T.s.st][0]}`]];
+  const tl = LIVE ? INJ.slice().reverse().map(i => [i.date, (i.status === 'Active' ? '' : 'Resolved · ') + (i.dx || i.mech)]).concat([[TODAY_ISO, 'Today' + (wk ? ' · week ' + wk + ' of the return plan' : '')]]) : [[RT.iso(new Date(RT.PLAN_START.getTime() - 2 * 864e5)), 'Scan: mild spring ligament sprain, no tear'], [RT.iso(RT.PLAN_START), 'Graded return starts · Calm it down'], [RT.iso(new Date(RT.PLAN_START.getTime() + 7 * 864e5)), 'Rebuild phase'], [RT.iso(new Date(RT.PLAN_START.getTime() + 28 * 864e5)), 'Get strong phase · plyometrics started and tolerated'], [TODAY_ISO, `Today · week ${wk} of ${RT.WEEKS} · ${RT_STW[T.s.st][0]}`]];
   return p1Head('p1inj', 'Injuries', 'current injury, timeline and history') + (cur[0] ? injHero(cur[0], T) : '') + `
   <div class="grid2"><div class="stack" style="gap:16px">${cur.map(i => `<section class="panel"><div class="sec-head"><h2>${esc(i.region)}</h2><span class="chip c-warn">Active</span></div><p style="margin:0">${esc(i.dx)}</p>
-    <div class="facts"><div><span>Since</span><span>${esc(i.date)} · ${esc(i.mech)}</span></div><div><span>Severity</span><span>${esc(i.sev)}</span></div><div><span>Healing phase</span><span>${T.p ? RT.HEAL[T.p.heal][0] + ' · ' + RT.HEAL[T.p.heal][1] : ''}</span></div><div><span>Timeline</span><span>A few weeks to settle; 3 to 4 months to be fully strong</span></div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="focus" data-arg="spring_ligament_R">Show in 3D</button><a class="btn sm" href="#return">Return plan</a><button class="btn sm" data-hb="injclose" data-arg="${i.id}">Mark resolved</button></div></section>`).join('')}
+    <div class="facts"><div><span>Since</span><span>${esc(i.date)} · ${esc(i.mech)}</span></div><div><span>Severity</span><span>${esc(i.sev)}</span></div><div><span>Healing phase</span><span>${T.p ? RT.HEAL[T.p.heal][0] + ' · ' + RT.HEAL[T.p.heal][1] : ''}</span></div>${LIVE ? '' : '<div><span>Timeline</span><span>A few weeks to settle; 3 to 4 months to be fully strong</span></div>'}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${i.structure || !LIVE ? `<button class="btn sm" data-act="focus" data-arg="${esc(i.structure || 'spring_ligament_R')}">Show in 3D</button>` : ''}<a class="btn sm" href="#return">Return plan</a><button class="btn sm" data-hb="injclose" data-arg="${i.id}">Mark resolved</button></div></section>`).join('')}
     <section class="panel"><h2>Timeline</h2><ol class="tl">${tl.map(([d, t]) => `<li><span class="num muted">${d}</span><span>${esc(t)}</span></li>`).join('')}</ol></section></div>
   <aside class="stack" style="gap:16px"><section class="panel"><h3>Log an injury</h3><form id="injform" class="stack" style="gap:12px">
     <div class="grid3" style="gap:10px;grid-template-columns:1fr 1fr"><label class="field">Date<input type="date" id="inj-date" value="${TODAY_ISO}"></label><label class="field">Severity<select id="inj-sev"><option>Mild</option><option>Moderate</option><option>Severe</option></select></label></div>
     <label class="field">Region<select id="inj-reg">${SOFT_REGIONS.map(r => `<option>${r}</option>`).join('')}</select></label>
-    <label class="field">What happened<input id="inj-mech" placeholder="Mechanism and context"></label><label class="field">Working diagnosis<input id="inj-dx" placeholder="Clinical impression"></label>
+    <label class="field">What happened<input id="inj-mech" placeholder="Mechanism and context"></label><label class="field">Working diagnosis<input id="inj-dx" placeholder="Clinical impression" required></label>
+    <label class="field">Structure in the 3D lab (optional)<input id="inj-st" list="inj-st-l" placeholder="e.g. Spring ligament"><datalist id="inj-st-l">${Object.entries(DB).filter(([k, d]) => !d.group).map(([k, d]) => `<option value="${esc(d.name)}">`).join('')}</datalist></label>
     <div><button class="btn primary" type="submit">Add to history</button></div></form></section>
     <section class="panel"><h3>History</h3><div class="rows">${INJ.map(i => `<div class="row" style="font-size:13.5px"><span class="grow"><b>${esc(i.region)}</b> · ${esc(i.date)}<br><span class="muted">${esc(i.dx || i.mech)}</span></span><span class="chip plain ${i.status === 'Active' ? 'c-warn' : 'c-ok'}">${i.status}</span></div>`).join('')}</div></section></aside></div>`;
 }
 
 /* Testing: return-to-padel battery with limb symmetry (right foot is the injured side) */
-let P1T = store.get('p1test', null) || { date: '2026-10-16', rows: { calf: [22, 28], bal: [26, 30], hop: [142, 155], triple: [430, 468], side: [31, 36], yb: [61, 64] } };
+let P1T = store.get('p1test', null) || demo({ date: '2026-10-16', rows: { calf: [22, 28], bal: [26, 30], hop: [142, 155], triple: [430, 468], side: [31, 36], yb: [61, 64] } }, { date: '', rows: {} });
 const P1_BATTERY = [['calf', 'Single-leg calf raises', 'reps to fatigue', 'Calf-foot capacity'], ['bal', 'Single-leg balance, eyes closed', 'seconds, max 30', 'Early control'], ['hop', 'Single-leg hop for distance', 'cm', 'Power and landing'], ['triple', 'Triple hop for distance', 'cm', 'Repeated power'], ['side', 'Side hop, 30 s', 'reps', 'Lateral tolerance, padel-specific'], ['yb', 'Y-balance, anterior reach', 'cm', 'Dynamic control']];
 function pageP1Test() {
   const g = p1Gate(); if (g) return g;
-  const rows = P1_BATTERY.map(([k, n, u, use]) => { const [R, L] = P1T.rows[k], lsi = L ? Math.round(R / L * 100) : 0; return { k, n, u, use, R, L, lsi, ok: lsi >= 90 }; });
+  const rows = P1_BATTERY.map(([k, n, u, use]) => { const [R, L] = P1T.rows[k] || [null, null], lsi = R != null && L ? Math.round(R / L * 100) : null; return { k, n, u, use, R, L, lsi, ok: lsi != null && lsi >= 90 }; });
+  const tested = rows.some(r => r.lsi != null);
   const pass = rows.filter(r => r.ok).length;
-  return p1Head('p1test', 'Testing', 'return-to-padel battery') + testHero(rows, P1T.date) + `
-  <div class="grid2"><section class="panel" style="gap:14px"><div class="sec-head"><h2>Limb symmetry · tested ${esc(P1T.date)}</h2><span class="chip ${pass === rows.length ? 'c-ok' : 'c-warn'}">${pass} of ${rows.length} at 90% or more</span></div>
-    <div class="table-wrap"><table style="min-width:620px"><thead><tr><th>Test</th><th>Right (injured)</th><th>Left</th><th>Symmetry</th></tr></thead><tbody>${rows.map(r => `<tr><td><b>${r.n}</b><br><span class="muted" style="font-size:12px">${r.u} · ${r.use}</span></td><td><input class="tin" type="number" value="${r.R}" data-pt="${r.k}:0" ${perm().clinical ? '' : 'disabled'} aria-label="${r.n} right"></td><td><input class="tin" type="number" value="${r.L}" data-pt="${r.k}:1" ${perm().clinical ? '' : 'disabled'} aria-label="${r.n} left"></td><td><span class="chip plain ${r.ok ? 'c-ok' : 'c-warn'}">${r.lsi}%</span></td></tr>`).join('')}</tbody></table></div>
+  return p1Head('p1test', 'Testing', 'return-to-padel battery') + (tested ? testHero(rows.filter(r => r.lsi != null), P1T.date) : `<section class="panel"><span class="eyebrow">Return-to-padel battery</span><h2>No tests recorded yet</h2><p class="muted" style="margin:0">Enter right and left results in the table below. Symmetry is worked out as you type; nothing is estimated.</p></section>`) + `
+  <div class="grid2"><section class="panel" style="gap:14px"><div class="sec-head"><h2>Limb symmetry · ${P1T.date ? 'tested ' + esc(P1T.date) : 'not tested yet'}</h2><span class="chip ${pass === rows.length ? 'c-ok' : 'c-warn'}">${pass} of ${rows.length} at 90% or more</span></div>
+    <div class="table-wrap"><table style="min-width:620px"><thead><tr><th>Test</th><th>Right (injured)</th><th>Left</th><th>Symmetry</th></tr></thead><tbody>${rows.map(r => `<tr><td><b>${r.n}</b><br><span class="muted" style="font-size:12px">${r.u} · ${r.use}</span></td><td><input class="tin" type="number" value="${r.R ?? ''}" data-pt="${r.k}:0" ${perm().clinical ? '' : 'disabled'} aria-label="${r.n} right"></td><td><input class="tin" type="number" value="${r.L ?? ''}" data-pt="${r.k}:1" ${perm().clinical ? '' : 'disabled'} aria-label="${r.n} left"></td><td><span class="chip plain ${r.ok ? 'c-ok' : 'c-warn'}">${r.lsi}%</span></td></tr>`).join('')}</tbody></table></div>
     <span class="muted" style="font-size:12.5px">Symmetry = injured ÷ uninjured × 100. Return to full padel needs 90% or more on every test, no pain during or the next morning, and clinician sign-off. Symmetry can flatter if the good side has also weakened, so track absolute values too.</span></section>
-  <aside class="stack" style="gap:16px"><div class="panel"><h3>Readiness to progress</h3>${rows.filter(r => !r.ok).map(r => `<div class="row" style="font-size:13.5px"><span class="grow">${r.n}</span><b class="num">${r.lsi}%</b></div>`).join('') || '<span>All tests at 90% or more.</span>'}<a class="btn sm" href="#return">On-court readiness score</a></div>
+  <aside class="stack" style="gap:16px"><div class="panel"><h3>Readiness to progress</h3>${rows.filter(r => !r.ok).map(r => `<div class="row" style="font-size:13.5px"><span class="grow">${r.n}</span><b class="num">${r.lsi == null ? 'not tested' : r.lsi + '%'}</b></div>`).join('') || '<span>All tests at 90% or more.</span>'}<a class="btn sm" href="#return">On-court readiness score</a></div>
     <div class="panel"><h3>Population testing</h3><p class="muted" style="margin:0;font-size:13.5px">Classification, ACSM screening and the full prescription live in Classify and test.</p><a class="btn sm" href="#classify">Open Classify and test</a></div></aside></div>`;
 }
 
@@ -126,11 +128,12 @@ document.addEventListener('change', e => {
   const k = e.target.dataset && e.target.dataset.ps;
   if (k) { P1_SHARE[k] = e.target.checked; store.set('p1share', P1_SHARE); audit(e.target.checked ? 'Shared topic' : 'Unshared topic', 'Player 1 · ' + k); keepRender(); }
   const t = e.target.dataset && e.target.dataset.pt;
-  if (t) { const [k2, i] = t.split(':'); P1T.rows[k2][+i] = +e.target.value; P1T.date = TODAY_ISO; store.set('p1test', P1T); keepRender(); }
+  if (t) { const [k2, i] = t.split(':'); (P1T.rows[k2] = P1T.rows[k2] || [null, null])[+i] = e.target.value === '' ? null : +e.target.value; P1T.date = TODAY_ISO; store.set('p1test', P1T); keepRender(); }
 });
 document.addEventListener('submit', e => {
   if (e.target.id !== 'injform') return; e.preventDefault();
-  INJ.unshift({ id: 'i' + Date.now(), date: $('#inj-date').value, region: $('#inj-reg').value, dx: $('#inj-dx').value, mech: $('#inj-mech').value || 'Not recorded', sev: $('#inj-sev').value, status: 'Active' });
+  const stName = ($('#inj-st') || {}).value || '', stKey = Object.keys(DB).find(k => DB[k].name.toLowerCase() === stName.trim().toLowerCase());
+  INJ.unshift({ id: 'i' + Date.now(), date: $('#inj-date').value, region: $('#inj-reg').value, dx: $('#inj-dx').value, mech: $('#inj-mech').value || 'Not recorded', sev: $('#inj-sev').value, status: 'Active', structure: stKey ? stKey + (/left/i.test($('#inj-reg').value) ? '_L' : '_R') : null });
   store.set('p1inj', INJ); audit('Logged injury', 'Player 1'); toast('Injury added to Player 1\'s history'); keepRender();
 });
 

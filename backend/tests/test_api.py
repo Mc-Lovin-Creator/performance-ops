@@ -219,10 +219,27 @@ class TwoStep(unittest.TestCase):
         self.assertEqual(c.post("/api/auth/2fa/enable", headers=h, json={"code": "000000" if totp.code_at(secret, __import__('time').time()) != "000000" else "111111"}).status_code, 400)
         self.assertEqual(c.post("/api/auth/2fa/enable", headers=h, json={"code": totp.code_at(secret, __import__('time').time())}).status_code, 200)
         self.assertTrue(c.post("/api/auth/login", json={"email": "jp@lab.test", "password": PW}).json().get("need_code"))
-        r = c.post("/api/auth/login", json={"email": "jp@lab.test", "password": PW, "code": totp.code_at(secret, __import__('time').time())})
+        now = __import__('time').time()
+        self.assertEqual(c.get("/api/auth/me", headers=h).status_code, 401)   # turning on two-step ends older sessions
+        r = c.post("/api/auth/login", json={"email": "jp@lab.test", "password": PW, "code": totp.code_at(secret, now)})
+        self.assertEqual(r.status_code, 401)   # the code used to turn it on cannot be reused
+        r = c.post("/api/auth/login", json={"email": "jp@lab.test", "password": PW, "code": totp.code_at(secret, now + 30)})
         self.assertEqual(r.status_code, 200)
         h2 = {"Authorization": "Bearer " + r.json()["token"]}
         self.assertEqual(c.get("/api/state/daily", headers=h2).status_code, 200)
+        self.assertEqual(c.post("/api/auth/login", json={"email": "jp@lab.test", "password": PW, "code": totp.code_at(secret, now + 30)}).status_code, 401)   # once only
+        # a session alone cannot re-bind the authenticator
+        self.assertEqual(c.post("/api/auth/2fa/setup", headers=h2).json().get("reason"), "reauth")
+
+    def test_password_change_ends_other_sessions(self):
+        store = MemoryStore(); keys = Keys("y" * 40, gen_field_key())
+        asyncio.run(store.add_user({"email": "ol@lab.test", "role": "physio", "person": "olivia", "p1": False, "password_hash": hash_password(PW)}))
+        c = TestClient(create_app(store, keys))
+        h1, h2 = login(c, "ol@lab.test"), login(c, "ol@lab.test")
+        r = c.post("/api/auth/password", headers=h1, json={"old": PW, "new": PW + " new"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(c.get("/api/auth/me", headers=h2).status_code, 401)
+        self.assertEqual(c.get("/api/auth/me", headers={"Authorization": "Bearer " + r.json()["token"]}).status_code, 200)
 
     def test_rfc6238_vector(self):
         from core import totp

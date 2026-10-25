@@ -23,9 +23,20 @@ def code_at(secret: str, t: float, step: int = 30, digits: int = 6) -> str:
 
 
 def verify(secret: str, code: str, now: float | None = None, window: int = 1) -> bool:
+    return match_step(secret, code, now, window) is not None
+
+
+def match_step(secret: str, code: str, now: float | None = None, window: int = 1) -> int | None:
+    """The 30-second step the code belongs to, or None. Callers store the last used step so a code works only once."""
     now = now or time.time()
     code = (code or "").strip().replace(" ", "")
-    return any(hmac.compare_digest(code_at(secret, now + k * 30), code) for k in range(-window, window + 1))
+    if not code.isdigit() or len(code) != 6:
+        return None
+    for k in range(-window, window + 1):
+        t = now + k * 30
+        if hmac.compare_digest(code_at(secret, t), code):
+            return int(t // 30)
+    return None
 
 
 def uri(secret: str, email: str, issuer: str = "Performance Lab OS") -> str:

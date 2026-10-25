@@ -12,9 +12,9 @@ const AS_TESTS = {
   Wrist: ['Phalen', 'Tinel', 'Finkelstein', 'Scaphoid shift', 'TFCC load']
 };
 const AS_3D = { Knee: 'acl_R', Ankle: 'atfl_R', Shoulder: 'supraspinatus_R', Hip: 'glute_med_R', Spine: 'erector_spinae', Elbow: 'forearm_extensors_R', Wrist: 'forearm_flexors_R' };
-let ASSESS = store.get('assess', null) || [
+let ASSESS = store.get('assess', null) || demo([
   { id: 'as1', ath: ATH[0] && ATH[0].id, at: '2026-10-19', by: 'olivia', region: 'Ankle', side: 'Right', tests: { 'Anterior drawer': 'neg', 'Talar tilt': 'neg', 'Squeeze test': 'neg', 'Thompson': 'neg' }, sev: 'Low', subj: 'Arch ache after long sessions, settles overnight', obj: 'Single-leg calf raise 22 vs 28, no swelling', plan: 'Continue graded return; recheck calf raise in 1 week' }
-];
+], []);
 const AF = { region: 'Knee', tests: {}, sev: 'Low' };
 const AS_RES = [['neg', 'Negative'], ['eq', 'Equivocal'], ['pos', 'Positive']];
 
@@ -51,23 +51,24 @@ const PROTOS = [
   ['Lumbar strain', 'Repeated rotation with extension in overheads and long rallies.', [['Symptom control', '0 to 5 days', 'Walking 20 to 30 min a day; breathing; directional preference if it centralises'], ['Core and hip mobility', '1 to 3 weeks', 'Dead bug; bird dog; 90/90 hips; glute bridges'], ['Rotational capacity', '3 to 5 weeks', 'Pallof press; cable rotations; med-ball scoop tosses; shadow strokes'], ['Return to court', '5 to 8 weeks', 'Rallies, full-court movement, match intensity 50 rising to 100%']], 'erector_spinae']
 ];
 const DRILLS = [[1, 'Isometric wrist extension', 'Tendon pain modulation', 5], [2, 'Y-balance test', 'Ankle and knee readiness; 90% of other side to progress', 5], [3, 'Wall rebound forehand', 'Stroke mechanics, grip pressure', 10], [3, 'Split-step reaction to serve', 'Reactive footwork', 8], [3, 'Víbora shadow', 'Overhead deceleration, scapular timing', 6], [4, 'Cross-court diagonal cuts', 'Lateral speed, decelerate on the outside foot', 8], [4, 'Live baseline rally, 5 shots', 'Controlled match load, no smashes', 12]];
-const RDY = store.get('rdy', { proto: 1, stage: 3, pain: 2, landing: 7, move: 8, agility: 7, endur: 8 });
+const RDY = store.get('rdy', demo({ proto: 1, stage: 3, pain: 2, landing: 7, move: 8, agility: 7, endur: 8 }, { proto: 0, stage: 1, pain: null, landing: null, move: null, agility: null, endur: null }));
 
 function rtExtras() {
   const P = PROTOS[RDY.proto], st = RDY.stage;
   const comps = [['pain', 'Pain on strokes (0 none to 10 worst)', true], ['landing', 'Jump and landing quality'], ['move', 'Court movement'], ['agility', 'Agility and change of direction'], ['endur', 'Endurance']];
-  const score = Math.round(((10 - RDY.pain) + RDY.landing + RDY.move + RDY.agility + RDY.endur) / 5 * 10);
-  const low = comps.filter(c => !c[2] && RDY[c[0]] < 7).map(c => c[1].toLowerCase());
-  const cleared = score >= 80 && RDY.pain <= 2 && !low.length;
+  const rated = comps.every(c => RDY[c[0]] != null);   /* nothing is scored until every component has been rated by a clinician */
+  const score = rated ? Math.round(((10 - RDY.pain) + RDY.landing + RDY.move + RDY.agility + RDY.endur) / 5 * 10) : null;
+  const low = comps.filter(c => !c[2] && RDY[c[0]] != null && RDY[c[0]] < 7).map(c => c[1].toLowerCase());
+  const cleared = rated && score >= 80 && RDY.pain <= 2 && !low.length;
   return `<div class="grid2"><section class="panel" style="gap:16px"><div class="sec-head"><h2>Padel protocols</h2><button class="btn sm" data-act="focus" data-arg="${P[3]}">Show in 3D</button></div>
     <div class="pills">${PROTOS.map((p, i) => `<button type="button" class="pill" data-hb="proto" data-arg="${i}" aria-pressed="${RDY.proto === i}">${p[0]}</button>`).join('')}</div>
     <p class="muted" style="margin:0;font-size:13.5px">${esc(P[1])}</p>
     <ol class="rt-rail" style="grid-template-columns:repeat(4,minmax(0,1fr))">${P[2].map((s, i) => `<li class="${i + 1 < st ? 'done' : i + 1 === st ? 'cur' : ''}"><button type="button" class="rt-dot" data-hb="stage" data-arg="${i + 1}" aria-label="Set stage ${i + 1}">${i + 1 < st ? '✓' : i + 1}</button><b>${esc(s[0])}</b><span>${esc(s[1])}</span></li>`).join('')}</ol>
     <div class="facts"><div><span>Stage ${st} key work</span><span>${esc(P[2][st - 1][2])}</span></div></div>
     <div class="stack" style="gap:6px"><span class="eyebrow">Court drills for stage ${st}</span><div class="rows">${DRILLS.filter(d => d[0] === st).map(d => `<div class="row" style="font-size:13.5px;min-height:40px"><span class="grow"><b>${esc(d[1])}</b><br><span class="muted">${esc(d[2])}</span></span><span class="num muted">${d[3]} min</span></div>`).join('') || '<span class="muted" style="font-size:13px">Off-court stage. No court drills yet.</span>'}</div></div></section>
-  <section class="panel" style="gap:16px"><div class="sec-head"><h2>On-court readiness</h2><span class="chip ${cleared ? 'c-ok' : 'c-warn'}">${cleared ? 'Cleared for next stage' : 'Not yet'}</span></div>
-    <div class="rt-grid">${comps.map(c => `<label class="range rt-sl">${c[1]}<span class="num rt-v">${RDY[c[0]]}</span><input type="range" min="0" max="10" step="1" value="${RDY[c[0]]}" data-rdy="${c[0]}"></label>`).join('')}</div>
-    <div class="rt-verdict"><div><span class="eyebrow">Readiness</span><span class="serif num" style="font-size:44px;line-height:1">${score}</span><span class="muted" style="font-size:12px">of 100</span></div>
+  <section class="panel" style="gap:16px"><div class="sec-head"><h2>On-court readiness</h2><span class="chip ${cleared ? 'c-ok' : 'c-warn'}">${cleared ? 'Cleared for next stage' : rated ? 'Not yet' : 'Not rated yet'}</span></div>
+    <div class="rt-grid">${comps.map(c => `<label class="range rt-sl">${c[1]}<span class="num rt-v">${RDY[c[0]] ?? '—'}</span><input type="range" min="0" max="10" step="1" value="${RDY[c[0]] ?? 0}" data-rdy="${c[0]}"></label>`).join('')}</div>
+    <div class="rt-verdict"><div><span class="eyebrow">Readiness</span><span class="serif num" style="font-size:44px;line-height:1">${score ?? '—'}</span><span class="muted" style="font-size:12px">of 100</span></div>
       <div class="stack" style="gap:6px;font-size:13.5px"><span>Clears at 80 or more, stroke pain 2 or less, and <b>every</b> component 7 or more.</span>${low.length ? `<span class="muted">Holding back: ${low.map(esc).join(', ')} below 7.</span>` : ''}${RDY.pain > 2 ? '<span class="muted">Stroke pain above 2.</span>' : ''}
       <span class="muted" style="font-size:12px">Stricter than the rehab-hub rule, where a high average could hide one weak component such as landing.</span></div></div></section></div>`;
 }

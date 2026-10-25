@@ -1,11 +1,11 @@
 /* ---------- v30: kit and product trials (Player 1), recovery station and sensory track (squad), build status (admin) ---------- */
 const OPS_DAY = d => { const x = new Date(TODAY); x.setDate(x.getDate() - d); return ISO(x); };
 const TESTERS = ['jp', 'olivia', 'javi'];
-let TRIALS = store.get('trials') || [
+let TRIALS = store.get('trials') || demo([
   { id: 't1', product: 'Compression sleeves', cat: 'Recovery', status: 'Testing', note: 'Elbow and forearm, post-session', t: { jp: { days: 5, v: 'Pass' }, olivia: { days: 4, v: 'Pass' }, javi: { days: 2, v: '' } } },
   { id: 't2', product: 'Nike recovery flip-flops', cat: 'Footwear', status: 'Testing', note: 'Off-court only; check arch support against his foot plan', t: { jp: { days: 3, v: 'Mixed' }, olivia: { days: 3, v: 'Pass' }, javi: { days: 0, v: '' } } },
   { id: 't3', product: 'Insoles', cat: 'Footwear', status: 'Testing', note: 'Must be cleared by JP and Olivia before he wears them on court', t: { jp: { days: 0, v: '' }, olivia: { days: 0, v: '' }, javi: { days: 0, v: '' } } }
-];
+], []);
 const SUPPLIERS = [{ name: 'Mueller Sports Medicine', what: 'Taping', contact: 'Brian Mulcahy, International Consultant, South Europe', status: 'To contact' }];
 const saveTrials = () => store.set('trials', TRIALS);
 function pageP1Kit() {
@@ -27,10 +27,10 @@ document.addEventListener('submit', e => { const f = e.target; if (!f.dataset ||
 
 /* recovery station: 5 stations, daily, adherence tracked; kept separate from rehab */
 const STATIONS = [['A', 'Ice-compression sleeve and slow breathing', 'Up to 10 min seated, sleeve on elbow or wrist; breathe at 6 breaths a minute, finish with a few cyclic sighs to calm the nervous system'], ['1', 'Forearm and wrist', '2 × 30 s holds each side (about 60 s per muscle, ACSM)'], ['2', 'Shoulder and upper back', '2 × 30 s holds each side (about 60 s per muscle, ACSM)'], ['3', 'Lower back and hips', '2 × 30 s holds each side · your back-stretch example still to add'], ['4', 'Thighs', '2 × 30 s holds each side (about 60 s per muscle, ACSM)'], ['5', 'Calves and feet', '2 × 30 s holds each side (about 60 s per muscle, ACSM)']];
-let RSTAT = store.get('rstation') || (() => { const o = {}; for (let d = 1; d < 7; d++) { const k = OPS_DAY(d); o[k] = {}; ATH.forEach((a, i) => { if ((i * 7 + d * 3) % 5 !== 0) o[k][a.id] = true; }); } return o; })();
+let RSTAT = store.get('rstation') || demo((() => { const o = {}; for (let d = 1; d < 7; d++) { const k = OPS_DAY(d); o[k] = {}; ATH.forEach((a, i) => { if ((i * 7 + d * 3) % 5 !== 0) o[k][a.id] = true; }); } return o; })(), {});
 /* sensory track: 9 surfaces on the inner dark-blue lane, ~160 m loop, ~2 min */
 const SURFACES = [[1, 'Fine sand', 'walk'], [2, 'Smooth pebbles', 'walk'], [3, 'Acupressure mat', 'walk'], [4, 'Natural texture', 'walk'], [6, 'Terrasensa plates', 'walk'], [7, 'Airex pad', 'stop'], [8, 'Sand', 'walk'], [9, 'Cobblestone', 'walk'], [10, 'Terrasensa plate', 'walk']];
-let TRACKLOG = store.get('tracklog') || [];
+let TRACKLOG = store.get('tracklog') || demo([], []);
 function pageRecovery() {
   const days = [6, 5, 4, 3, 2, 1, 0].map(OPS_DAY), vis = ATH.filter(seesAthlete);
   const adh = a => Math.round(days.filter(d => (RSTAT[d] || {})[a.id]).length / days.length * 100);

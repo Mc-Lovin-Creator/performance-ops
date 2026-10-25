@@ -82,7 +82,9 @@ function makeRT(cfg) {
   }
   function seedHistory(todayIso) {
     seed = 7;
-    for (const x of days) {
+    /* on the team server nothing is generated: a past day has data only if a session was logged */
+    if (LIVE) for (const x of days) x.done = null;
+    else for (const x of days) {
       if (x.iso >= todayIso) { x.done = null; continue; }
       const p = x.plan, base = p ? p.min : 18 + rnd() * 14;
       const min = Math.max(0, Math.round(base * (.82 + rnd() * .3)));
@@ -122,14 +124,18 @@ let RT = makeRT(rtCfg());
 function rtRebuild(cfg) { store.set('rt-cfg', cfg); RT = makeRT(cfg); RT.seedHistory(TODAY_ISO); }
 
 /* ---------- Player 1: one data source for Today, Return plan and Load ---------- */
-const RS = Object.assign({ rest: 1, during: 1, morning: 1, stiff: 1, swell: 0, limp: false, instab: false }, store.get('rt-today', {}));
+const RS_SAVED = store.get('rt-today', {}) || {};
+/* today's symptom check-in; yesterday's answers never carry over */
+const RS = Object.assign({ rest: 1, during: 1, morning: 1, stiff: 1, swell: 0, limp: false, instab: false }, RS_SAVED.at === TODAY_ISO ? RS_SAVED : {});
 RT.seedHistory(TODAY_ISO);
 const P1_STATUS = { GREEN: 'Ready', AMBER: 'Modify', RED: 'Hold' };
 const RT_STW = { GREEN: ['Ready', 'c-ok'], AMBER: ['Modify', 'c-warn'], RED: ['Hold', 'c-risk'] };
 
 function p1Wellness() {
   const a = ATH.find(x => x.id === 'p1');
-  const rules = [['HRV more than 10% under baseline', a.hrv != null && a.hrv < -10, a.hrv + '%'], ['Sleep under 6 h', !!a.sleep && parseInt(a.sleep) < 6, a.sleep], ['Soreness 6 or more out of 10', a.sore >= 6, a.sore + '/10']];
+  const rules = [['HRV more than 10% under baseline', a.hrv != null && a.hrv < -10, a.hrv + '%'], ['Sleep under 6 h', !!a.sleep && parseInt(a.sleep) < 6, a.sleep], ['Soreness 6 or more out of 10', a.sore != null && a.sore >= 6, a.sore + '/10']];
+  /* no data is not a green light: with no wearable and no check-in today the day is treated as Modify until someone checks in */
+  if (LIVE && RS.at !== TODAY_ISO) rules.push([a.hrv == null && a.sleep == null ? 'No wellness data or check-in today' : 'No symptom check-in today', true, '—']);
   const n = rules.filter(r => r[1]).length;
   return { rules, n, band: n >= 3 ? 'RED' : n ? 'AMBER' : 'GREEN' };
 }
@@ -141,7 +147,7 @@ function rtToday() {
   const day = RT.days[idx], w = p1Wellness();
   const s = RT.status(RS, w.band), p = day && day.plan, inc = todayRec().court.inc;
   if (inc) { s.trig.push('Incident logged in today\'s session'); if (s.st === 'GREEN') Object.assign(s, { st: 'AMBER', mod: .75, head: 'Review after today\'s incident', act: 'A clinician checks the foot before the next court session.' }); }
-  const ar = (typeof P1 === 'function' && P1() && P1().acwr) || 0;
+  const ar = (typeof P1 === 'function' && P1() && !P1().noLoad && P1().acwr) || 0;
   if (ar > 1.25 && s.st !== 'RED') { s.trig.push('Load ratio ' + ar.toFixed(2) + ' above 1.25'); if (s.st === 'GREEN') Object.assign(s, { st: 'AMBER', mod: .75, head: "Modify today's session", act: 'Load ratio above 1.25: reduce minutes and hold progression.' }); }
   const mins = p && s.st !== 'RED' ? Math.round(p.min * s.mod * RT.RMOD[w.band]) : 0;
   /* effective band: an AMBER day drops one effort band, so the headline never says "play hard" on a modified day */
@@ -161,13 +167,28 @@ function rtSync() {
   const la = 2 / 8, lc = 2 / 29; let ac = a.loads[0], ch = a.loads[0]; a.acute = []; a.chronic = [];
   for (const v of a.loads) { ac = v * la + (1 - la) * ac; ch = v * lc + (1 - lc) * ch; a.acute.push(ac); a.chronic.push(ch); }
   a.acwr = +(a.acute[41] / a.chronic[41]).toFixed(2);
+  /* the ratio needs history: fewer than 14 logged days in the last 28 and it is not shown or used */
+  a.noLoad = a.loads.slice(-28).filter(v => v > 0).length < 14; if (a.noLoad || !isFinite(a.acwr)) a.acwr = 0;
+  if (LIVE) liveP1(a);
   const wk = a.loads.slice(-8, -1), mean = wk.reduce((x, y) => x + y, 0) / 7, sd = Math.sqrt(wk.reduce((x, y) => x + (y - mean) ** 2, 0) / 7);
   a.week = Math.round(mean * 7); a.monotony = +(mean / (sd || 1)).toFixed(2); a.strain = Math.round(a.week * a.monotony);
-  a.status = P1_STATUS[T.s.st]; a.sore = Math.max(RS.rest, RS.during, RS.morning) > a.sore ? Math.max(RS.rest, RS.during, RS.morning) : a.sore;
+  a.status = P1_STATUS[T.s.st]; if (!LIVE || RS.at === TODAY_ISO) a.sore = Math.max(RS.rest, RS.during, RS.morning) > a.sore ? Math.max(RS.rest, RS.during, RS.morning) : a.sore;
   a.plan = T.p ? (T.s.st === 'RED' ? 'No high-impact padel; rehab, bike or pool' : RT.BAND[T.p.band].label + ', ' + T.mins + ' min, ' + RT.TLABEL[T.p.type].toLowerCase()) : a.plan;
   return T;
 }
 
+/* Player 1 on the team server: his case comes from the clinician-entered profile, wellness from his wearable (WHOOP) */
+function liveP1(a) {
+  let inj = null; try { inj = INJ.find(i => i.status === 'Active'); } catch (e) { inj = (store.get('p1inj', []) || []).find(i => i.status === 'Active'); }   /* INJ may not exist yet on first load */
+  const ups = UPDATES.filter(u => u.ath === 'p1');
+  a.case = inj ? { region: inj.region, dx: inj.dx || inj.mech, stage: (ups[0] && ups[0].stage) || 'Assess', pain: ups.map(u => +u.pain).reverse(), since: inj.date, structure: inj.structure || null, next: (ups[0] && ups[0].plan) || '' } : null;
+  let W; try { W = WEAR; } catch (e) { W = store.get('wear', {}); } W = W || {}; const days = Object.keys(W).sort(), last = days[days.length - 1];
+  const today = last && (new Date(TODAY) - new Date(last)) / 864e5 <= 1 ? W[last] : null;
+  const base = days.slice(-29, -1).map(d => W[d] && W[d].hrv).filter(v => v != null);
+  a.hrv = today && today.hrv != null && base.length >= 7 ? Math.round((today.hrv / (base.reduce((x, y) => x + y, 0) / base.length) - 1) * 100) : null;
+  a.sleep = today && today.sleep != null ? Math.floor(today.sleep) + 'h ' + String(Math.round(today.sleep % 1 * 60)).padStart(2, '0') : null;
+  a.device = days.length ? 'Wearable synced ' + last : 'No wearable connected';
+}
 function rtGlyph(st, size) {
   const s = size || 12, c = st === 'RED' ? 'var(--risk)' : st === 'AMBER' ? 'var(--warn)' : 'var(--ok)';
   const inner = st === 'RED' ? `<rect x="3.4" y="6.9" width="9.2" height="2.2" rx="1" fill="${c}"/>` : st === 'AMBER' ? `<path d="M3.6 12.4 12.4 3.6" stroke="${c}" stroke-width="2" stroke-linecap="round"/>` : `<circle cx="8" cy="8" r="2.9" fill="${c}"/>`;

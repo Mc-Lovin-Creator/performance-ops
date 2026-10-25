@@ -12,7 +12,7 @@ SRC = ROOT / "app" / "src"
 ASSETS = ROOT / "app" / "assets"
 # modules inserted, in order, where app.js marks /* ---------- search ---------- */
 ORDER = ["anatdb", "return", "hub", "p1hub", "team", "anatui", "edudata", "norms", "anatdb2", "anatdb3", "edu", "agents", "cinema", "p1load", "docread", "vault", "ops", "squad", "audit",
-         "members", "fun", "labs", "book", "chapters", "story", "fascia3d", "holo", "motion", "explainers", "focus", "consent", "opencap", "wear", "pilot", "sync"]
+         "members", "labs", "book", "story", "fascia3d", "motion", "explainers", "focus", "consent", "opencap", "wear", "pilot", "sync"]
 MARK = "/* ---------- search ---------- */"
 
 
@@ -41,6 +41,10 @@ def main():
             '<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b0d12">'
             '<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">'
             '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Performance Ops">'
+            '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\' \'unsafe-inline\' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; '
+            'worker-src \'self\' blob:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src \'self\' https://fonts.gstatic.com data:; '
+            'img-src \'self\' data: blob:; media-src \'self\' blob: data:; connect-src \'self\' %REACT_APP_BACKEND_URL% https://cdnjs.cloudflare.com https://cdn.jsdelivr.net '
+            'https://eutils.ncbi.nlm.nih.gov https://www.ebi.ac.uk; object-src \'none\'; base-uri \'none\'; form-action \'self\'">'
             '<link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><script>window.PLOS_API="%REACT_APP_BACKEND_URL%";</script></head><body>')
     (pub / "index.html").write_text(head + page + "</body></html>", encoding="utf-8")
     for f in (ASSETS / "pwa").glob("*"):   # installable on phones (home-screen icon, full screen); no service worker, so nothing clinical is cached offline

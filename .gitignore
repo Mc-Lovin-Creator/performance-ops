@@ -15,3 +15,5 @@ app/assets/img/
 frontend/public/*.png
 frontend/public/*.webmanifest
 tests/_pose.mjs
+tests/_shot.mjs
+tests/_liveshot.mjs

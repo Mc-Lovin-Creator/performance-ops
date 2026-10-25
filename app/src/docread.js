@@ -4,11 +4,15 @@
    Parser: Mozilla pdf.js with script evaluation switched off (isEvalSupported: false). ---------- */
 const DOCREAD = { busy: false, draft: null, err: '', lib: null };
 const PDFJS_V = '3.11.174', PDFJS_MAX = 25 * 1024 * 1024;
+const PDFJS_SRI = { lib: 'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e', worker: 'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2' };
 function docLib() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   if (DOCREAD.lib) return DOCREAD.lib;
-  DOCREAD.lib = new Promise((ok, no) => { const s = document.createElement('script'); s.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.min.js`; s.crossOrigin = 'anonymous'; s.referrerPolicy = 'no-referrer';
-    s.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.worker.min.js`; ok(window.pdfjsLib); } catch (e) { no(e); } };
+  /* both files are pinned by hash: the browser refuses the script if it changes, and the worker is checked before it runs */
+  DOCREAD.lib = new Promise((ok, no) => { const s = document.createElement('script'); s.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.min.js`; s.integrity = PDFJS_SRI.lib; s.crossOrigin = 'anonymous'; s.referrerPolicy = 'no-referrer';
+    s.onload = async () => { try {
+      const w = await (await fetch(`https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.worker.min.js`, { referrerPolicy: 'no-referrer', integrity: PDFJS_SRI.worker })).blob();
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([w], { type: 'text/javascript' })); ok(window.pdfjsLib); } catch (e) { DOCREAD.lib = null; no(new Error('The PDF reader failed its safety check and was not loaded.')); } };
     s.onerror = () => { DOCREAD.lib = null; no(new Error('The PDF reader could not load. Check the connection and try again.')); }; document.head.appendChild(s); });
   return DOCREAD.lib;
 }

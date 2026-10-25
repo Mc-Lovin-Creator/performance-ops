@@ -9,18 +9,18 @@ const SYNC = (() => {
     if (r.status === 401 && path !== '/auth/login') { signOut(true); throw new Error('signed out'); }
     const j = await r.json().catch(() => ({})); return { ok: r.ok, status: r.status, body: j };
   };
-  const clearLocal = () => { try { Object.keys(localStorage).filter(k => k.indexOf('plos.') === 0 || k.indexOf('plosSnap.') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) { } };
+  const clearLocal = () => { for (const box of [localStorage, sessionStorage]) { try { Object.keys(box).filter(k => (k.indexOf('plos.') === 0 && !/^plos\.(token|user|ver|rv|idle)$/.test(k)) || k.indexOf('plosSnap.') === 0).forEach(k => box.removeItem(k)); } catch (e) { } } };
   function signOut(expired) { try { ['token', 'user', 'ver', 'rv'].forEach(k => sessionStorage.removeItem('plos.' + k)); } catch (e) { } clearLocal(); location.reload(); }
   async function pull(apply) {
     const r = await req('GET', '/state'); if (!r.ok) return [];
     const changed = [];
     for (const [k, d] of Object.entries(r.body.state || {})) {
-      if ((S2.ver[k] || 0) < d.version) { changed.push(k); if (apply) { try { localStorage.setItem('plos.' + k, JSON.stringify(d.value)); } catch (e) { } snapSet(k, d.value); S2.ver[k] = d.version; (S2.rv = S2.rv || {})[k] = d.rv || {}; } }
+      if ((S2.ver[k] || 0) < d.version) { changed.push(k); if (apply) { try { BOX.setItem('plos.' + k, JSON.stringify(d.value)); } catch (e) { } snapSet(k, d.value); S2.ver[k] = d.version; (S2.rv = S2.rv || {})[k] = d.rv || {}; } }
     }
     if (apply) { ss.set('ver', S2.ver); ss.set('rv', S2.rv || {}); } return changed;
   }
-  const snapGet = k => { try { return JSON.parse(localStorage.getItem('plosSnap.' + k)); } catch (e) { return null; } };
-  const snapSet = (k, v) => { try { localStorage.setItem('plosSnap.' + k, JSON.stringify(v)); } catch (e) { } };
+  const snapGet = k => { try { return JSON.parse(BOX.getItem('plosSnap.' + k)); } catch (e) { return null; } };
+  const snapSet = (k, v) => { try { BOX.setItem('plosSnap.' + k, JSON.stringify(v)); } catch (e) { } };
   const asRecs = v => v && typeof v === 'object' && !Array.isArray(v) ? ['map', v] : Array.isArray(v) && v.every(x => x && typeof x === 'object' && 'id' in x) ? ['list', Object.fromEntries(v.map(x => [String(x.id), x]))] : [null, null];
   async function pushRecords(k, value) {
     const [kind, now] = asRecs(value), [, before] = asRecs(snapGet(k) || (kind === 'map' ? {} : []));
@@ -30,7 +30,7 @@ const SYNC = (() => {
     const rv = (S2.rv || {})[k] || {}, base = Object.fromEntries(Object.keys(changes).map(id => [id, rv[id] || 0]));
     const r = await req('PATCH', '/state/' + k + '/records', { kind, changes, base });
     if (r.ok) { (S2.rv = S2.rv || {})[k] = r.body.rv; ss.set('rv', S2.rv); S2.ver[k] = r.body.version; ss.set('ver', S2.ver); snapSet(k, value);
-      const nc = Object.keys(r.body.conflicts || {}).length; if (nc) { toast(nc + ' entr' + (nc > 1 ? 'ies were' : 'y was') + ' changed by a colleague at the same time; keeping theirs and reloading.'); localStorage.setItem('plos.' + k, JSON.stringify(r.body.value)); snapSet(k, r.body.value); setTimeout(() => location.reload(), 1600); } else syncBadge('Saved'); return true; }
+      const nc = Object.keys(r.body.conflicts || {}).length; if (nc) { toast(nc + ' entr' + (nc > 1 ? 'ies were' : 'y was') + ' changed by a colleague at the same time; keeping theirs and reloading.'); BOX.setItem('plos.' + k, JSON.stringify(r.body.value)); snapSet(k, r.body.value); setTimeout(() => location.reload(), 1600); } else syncBadge('Saved'); return true; }
     if (r.status === 409 && r.body.reason === 'shape') return false;
     handleErr(k, r); return true;
   }
@@ -43,12 +43,12 @@ const SYNC = (() => {
   function push(k) {
     clearTimeout(S2.timers[k]);
     S2.timers[k] = setTimeout(async () => {
-      let value; try { value = JSON.parse(localStorage.getItem('plos.' + k)); } catch (e) { return; }
+      let value; try { value = JSON.parse(BOX.getItem('plos.' + k)); } catch (e) { return; }
       try {
         if (await pushRecords(k, value)) return;
         const r = await req('PUT', '/state/' + k, { value, version: S2.ver[k] || 0 });
         if (r.ok) { S2.ver[k] = r.body.version; ss.set('ver', S2.ver); syncBadge('Saved'); }
-        else if (r.status === 409 && r.body.reason === 'version') { const cur = r.body.current; if (cur) { localStorage.setItem('plos.' + k, JSON.stringify(cur.value)); S2.ver[k] = cur.version; ss.set('ver', S2.ver); } toast('A colleague changed this a moment ago. Loading their version.'); setTimeout(() => location.reload(), 1400); }
+        else if (r.status === 409 && r.body.reason === 'version') { const cur = r.body.current; if (cur) { BOX.setItem('plos.' + k, JSON.stringify(cur.value)); S2.ver[k] = cur.version; ss.set('ver', S2.ver); } toast('A colleague changed this a moment ago. Loading their version.'); setTimeout(() => location.reload(), 1400); }
         else handleErr(k, r);
       } catch (e) { syncBadge('Offline: saved on this device'); }
     }, 600);
@@ -121,7 +121,7 @@ const SYNC = (() => {
     document.body.appendChild(o); o.querySelector('[data-close]').onclick = () => o.remove();
     const errIn = (f, m) => { const e = f.querySelector('.login-err'); e.hidden = !m; e.textContent = m || ''; };
     o.querySelector('[data-pw]').addEventListener('submit', async e => { e.preventDefault(); const f = new FormData(e.target); const r = await req('POST', '/auth/password', { old: f.get('old'), new: f.get('new') });
-      if (r.ok) { e.target.reset(); errIn(e.target, ''); toast('Password changed'); } else errIn(e.target, r.body.error || 'Not changed'); });
+      if (r.ok) { if (r.body.token) { S2.token = r.body.token; ss.set('token', S2.token); } e.target.reset(); errIn(e.target, ''); toast('Password changed. Any other device was signed out.'); } else errIn(e.target, r.body.error || 'Not changed'); });
     if (!lead) return;
     const list = async () => { const r = await req('GET', '/users'); const L = o.querySelector('[data-list]'); if (!r.ok) { L.textContent = r.body.error || 'Not available'; return; }
       L.innerHTML = `<div class="acct-l">${r.body.users.map(u => `<div class="acct-r${u.active === false ? ' off' : ''}"><span><b>${esc(u.email)}</b><em>${esc(rl(u.role))} · ${esc(u.person || '')}${u.p1 ? ' · Player 1' : ''}${u.p1 && !u.totp ? ' · two-step OFF' : u.totp ? ' · two-step on' : ''}</em></span>
@@ -135,8 +135,11 @@ const SYNC = (() => {
   }
   function init() {
     if (!S2.on) return;
-    if (!S2.token) { store.set = () => { }; clearLocal(); setTimeout(clearLocal, 0); document.documentElement.classList.add('locked'); return loginOverlay(); }
+    if (!S2.token) { store.set = () => { }; clearLocal(); setTimeout(clearLocal, 0); document.documentElement.classList.add('locked'); let idle = false; try { idle = sessionStorage.getItem('plos.idle') === '1'; sessionStorage.removeItem('plos.idle'); } catch (e) { } return loginOverlay(idle ? 'Signed out after 15 minutes without activity.' : ''); }
     const orig = store.set; store.set = (k, v) => { orig(k, v); if (k !== 'me') push(k); };
+    /* Player 1 clinicians: sign out after 15 minutes without activity, so an unattended screen does not stay open on his record */
+    if (S2.user && S2.user.p1) { let last = Date.now(); ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(ev => addEventListener(ev, () => { last = Date.now(); }, { passive: true }));
+      setInterval(() => { if (Date.now() - last > 15 * 60 * 1000) { try { sessionStorage.setItem('plos.idle', '1'); } catch (e) { } signOut(true); } }, 20000); }
     if (S2.user && store.get('me') !== S2.user.person) orig('me', S2.user.person);
     setTimeout(() => {
       const w = document.getElementById('who'); if (w) { w.disabled = true; w.title = 'Signed in as ' + (S2.user ? S2.user.email : ''); }

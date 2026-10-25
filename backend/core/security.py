@@ -55,15 +55,21 @@ class Keys:
         return cls(os.environ.get("JWT_SECRET"), os.environ.get("FIELD_KEY"))
 
     # tokens
-    def issue(self, user_id: str, now: float | None = None) -> str:
+    def issue(self, user_id: str, now: float | None = None, tv: int = 0) -> str:
+        """tv is the user's token version: bumping it (password change, deactivation, two-step change, access change)
+        ends every session issued before."""
         now = now or time.time()
-        return jwt.encode({"sub": user_id, "iat": int(now), "exp": int(now + TOKEN_TTL)}, self.jwt_secret, algorithm="HS256")
+        return jwt.encode({"sub": user_id, "tv": int(tv), "iat": int(now), "exp": int(now + TOKEN_TTL)}, self.jwt_secret, algorithm="HS256")
 
-    def subject(self, token: str) -> str | None:
+    def claims(self, token: str) -> dict | None:
         try:
-            return jwt.decode(token, self.jwt_secret, algorithms=["HS256"])["sub"]
+            return jwt.decode(token, self.jwt_secret, algorithms=["HS256"], options={"require": ["sub", "exp", "iat"]})
         except jwt.PyJWTError:
             return None
+
+    def subject(self, token: str) -> str | None:
+        c = self.claims(token)
+        return c["sub"] if c else None
 
     # fields
     def seal(self, value) -> str:

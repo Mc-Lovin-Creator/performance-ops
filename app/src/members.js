@@ -3,7 +3,7 @@ const POPS = [['sedentary', 'Sedentary', '#94a3b8', 'Tier 0'], ['trained', 'Trai
 const tierPop = t => t == null || t === '' ? null : t <= 0 ? 'sedentary' : t <= 2 ? 'trained' : t === 3 ? 'competitive' : 'elite';
 const popOf = id => (POPS.find(p => p[0] === id) || [id, 'To classify', '#64748b', '']);
 const popChip = (pop, extra) => { const p = popOf(pop); return `<span class="popc" style="--pc:${p[2]}"><i></i>${esc(p[1])}${extra ? ' · ' + esc(extra) : ''}</span>`; };
-let MTIER = store.get('mtier') || {};
+let MTIER = store.get('mtier') || demo({}, {});
 /* every member of the domain: athletes, Player 1, clinicians, coaches, operations */
 function members() {
   const out = ATH.map(a => ({ id: a.id, name: aName(a), kind: a.id === 'p1' ? 'Player 1' : 'Athlete', role: a.pos, tier: MTIER[a.id] != null ? MTIER[a.id] : a.id === 'p1' ? 4 : a.tier, ath: a }));

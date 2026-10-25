@@ -2,7 +2,16 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const store = { get(k, d) { try { const v = localStorage.getItem('plos.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('plos.' + k, JSON.stringify(v)); } catch (e) { } } };
+/* LIVE = signed in to the team server. Then the app shows only real records (never demo data) and keeps them in this tab's
+   session storage only, so nothing clinical stays on the device after the tab closes. */
+const LIVE = (() => { const a = window.PLOS_API || ''; return !!a && a.indexOf('%') !== 0; })();
+const BOX = (() => { try { return LIVE ? sessionStorage : localStorage; } catch (e) { return null; } })();
+/* Removed for clinical use (v47): film-style chapter cards, confetti, streak and mission rewards, holographic morph.
+   An injured athlete should not be rewarded for streaks of load; the stubs keep older call sites harmless. */
+const chapterSlate = () => { }, holoMount = () => { }, holoCard = () => '', holoTo = () => { }, celebrate = () => { }, funAfterRender = () => { }, p1Wins = () => '', HOLO_DOM = {};
+/* demo(x, empty): the example content only in the offline demo; on the team server the real record or nothing */
+const demo = (x, empty) => LIVE ? empty : x;
+const store = { get(k, d) { try { const v = BOX.getItem('plos.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { BOX.setItem('plos.' + k, JSON.stringify(v)); } catch (e) { } } };
 let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 const TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
 const dayLabel = (back) => { const d = new Date(TODAY); d.setDate(d.getDate() - back); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
@@ -73,6 +82,8 @@ for (const a of ATH) {
   const wk = a.loads.slice(-8, -1); const mean = wk.reduce((x, y) => x + y, 0) / 7; const sd = Math.sqrt(wk.reduce((x, y) => x + (y - mean) ** 2, 0) / 7);
   a.week = Math.round(mean * 7); a.monotony = +(mean / (sd || 1)).toFixed(2); a.strain = Math.round(a.week * a.monotony);
 }
+/* on the team server the squad starts with Player 1 only, and nothing about him is pre-filled */
+if (LIVE) { const p = ATH.find(a => a.id === 'p1'); ATH.length = 0; ATH.push(Object.assign(p, { status: 'No check-in', hrv: null, sleep: null, sore: null, device: 'No wearable connected', plan: '', case: null })); }
 const TIERS = ['Sedentary', 'Recreationally active', 'Trained / developmental', 'Highly trained / national', 'Elite / international', 'World class'];
 
 /* ---------- staff (non-clinical) ---------- */
@@ -87,12 +98,12 @@ const FACILITY = [['Court 1', 0.82], ['Court 2', 0.64], ['Gym', 0.71], ['Physio 
 /* ---------- treatment updates ---------- */
 const MODS = ['Manual therapy', 'Exercise therapy', 'Shockwave', 'Dry needling', 'Ice and compression', 'Taping', 'Education', 'Hydrotherapy'];
 const STAGES = ['Assess', 'Calm', 'Restore', 'Build', 'Court', 'Compete'];
-let UPDATES = store.get('updates', null) || [
+let UPDATES = store.get('updates', null) || demo([
   { id: 'u1', ath: 'p1', by: 'olivia', at: 'Today 07:41', pain: 3, mods: ['Exercise therapy', 'Education'], response: 'Better', plan: 'Intrinsic foot and calf loading daily. Follow the plan colour on court.', stage: 'Court', shared: true },
   { id: 'u2', ath: 'km', by: 'jp', at: 'Today 07:20', pain: 2, mods: ['Exercise therapy', 'Shockwave'], response: 'Better', plan: 'Progress eccentric wrist extension. Grip test Friday.', stage: 'Build', shared: false },
   { id: 'u3', ath: 'na', by: 'olivia', at: 'Yesterday 16:10', pain: 1, mods: ['Exercise therapy'], response: 'Same', plan: 'Hop battery Thursday; target limb symmetry 90% or more.', stage: 'Court', shared: true },
   { id: 'u4', ath: 'ok', by: 'jp', at: 'Today 07:05', pain: 7, mods: ['Education'], response: 'New case', plan: 'Assessment 08:30. No court until reviewed.', stage: 'Assess', shared: true }
-];
+], []);
 
 /* ---------- messages ---------- */
 let CHANNELS = [
@@ -103,24 +114,25 @@ let CHANNELS = [
   { id: 'case-na', name: 'Noor A. · ACL', members: ['jp', 'olivia'], private: true, kind: 'case', ath: 'na' },
   { id: 'dm-p1', name: 'Player 1', members: ['jp', 'p1'], private: true, kind: 'dm' }
 ];
-let MSGS = store.get('msgs', null) || {
+if (LIVE) for (let k = CHANNELS.length - 1; k >= 0; k--) if (CHANNELS[k].ath && !ATH.some(a => a.id === CHANNELS[k].ath)) CHANNELS.splice(k, 1);
+let MSGS = store.get('msgs', null) || demo({
   team: [['javi', '06:50', 'Court 2 booked from 08:00. Player 1 on technical only if physio agrees.'], ['jp', '07:02', 'Recovery station rota for next week is in Learn. Swap requests by Thursday please.']],
   physio: [['olivia', 'Yesterday', 'Hop test protocol is now version 3 in the library. Please read before Thursday.', 'Protocol · Hop test v3'], ['olivia', '07:10', 'Two notes waiting for co-sign.']],
   'case-p1': [['jp', '07:38', 'Check-in flagged: HRV 18% under baseline, slept 5h 40, arch still sore.', 'Check-in 07:31'], ['olivia', '07:41', 'Agreed. Technical only, no jumps or sprints. I will see him at 13:00.', 'Treatment update'], ['dr', '07:52', 'Reviewed. No imaging needed at this stage. I will see him with Olivia on Friday.']],
   'case-ok': [['jp', '07:05', 'Back pain rated "limits me" at check-in. Review at 08:30, no court until then.', 'Body map · lower back']],
   'case-na': [['olivia', 'Yesterday', 'Month 7. Hop battery Thursday. Quad symmetry last test 86%.']],
   'dm-p1': [['jp', '07:45', 'Lighter day today. Your foot exercises are in the app.'], ['p1', '07:50', 'Thanks. Arch feels better than yesterday.']]
-};
+}, Object.fromEntries(CHANNELS.map(c => [c.id, []])));
 
 /* ---------- innovation ---------- */
-let IDEAS = store.get('ideas', null) || [
+let IDEAS = store.get('ideas', null) || demo([
   { id: 'i1', name: 'Force plate testing as a paid service', stage: 'Evidence review', owner: 'JP', impact: 8, conf: 6, ease: 5, value: '[AED per test]', note: 'Jump and strength profiling for outside clubs' },
   { id: 'i2', name: 'AI readiness briefing at 07:00', stage: 'Pilot', owner: 'JP', impact: 7, conf: 7, ease: 7, value: 'Staff time', note: 'Summarises check-ins and wearables per athlete' },
   { id: 'i3', name: 'Sensory surface lane around the walking track', stage: 'Pilot', owner: 'JP', impact: 6, conf: 5, ease: 6, value: 'Member offer', note: 'Barefoot proprioception circuit' },
   { id: 'i4', name: 'VR anatomy sessions for athlete education', stage: 'Idea', owner: 'Olivia', impact: 5, conf: 4, ease: 4, value: 'Engagement', note: 'Uses the same 3D model' },
   { id: 'i5', name: 'Closed-client lab membership tiers', stage: 'Evidence review', owner: 'Operations', impact: 9, conf: 5, ease: 4, value: '[AED per member]', note: 'Private high-performance clients' },
   { id: 'i6', name: 'Post-padel recovery station adherence tracking', stage: 'Scale', owner: 'Javi', impact: 6, conf: 8, ease: 8, value: 'Retention', note: 'Five stations, logged per athlete' }
-];
+], []);
 [{ id: 'i7', name: 'LINC connected supplement dispenser and biomarker test', stage: 'Idea', owner: 'JP', impact: 6, conf: 4, ease: 5, value: 'Player 1 nutrition', note: 'By Paul O\'Connor; early-access waitlist, 2027 launch' },
  { id: 'i8', name: 'Blaze smart hydration bottle', stage: 'Idea', owner: 'JP', impact: 5, conf: 5, ease: 8, value: 'Hydration tracking in the heat', note: 'Screen on the lid, intake tracking, UV sterilisation' },
  { id: 'i9', name: 'Sonar unified wearable data app', stage: 'Idea', owner: 'JP', impact: 7, conf: 5, ease: 6, value: 'One feed for Whoop, Garmin, Oura, Apple Watch', note: 'Could feed the load page once wearables go in' }].forEach(x => { if (!IDEAS.some(i => i.id === x.id)) IDEAS.push(x); });
@@ -297,7 +309,7 @@ function pageCommand() {
       <span class="eyebrow">Wednesday 21 October · 07:40 · sample data</span>
       <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap"><span class="big num">${S.track === 'clinical' ? decisions.length : Math.round(ATH.reduce((s, a) => s + a.week, 0) / 1000) + 'k'}</span>
       <span class="hero-sub">${S.track === 'clinical' ? 'athletes need a clinical decision before training' : 'AU of squad session load in the last 7 days'}</span></div>
-      <span class="muted">${greet()}. ${S.track === 'clinical' ? '9 of 10 checked in. 2 notes waiting for your signature.' : `${ATH.filter(a => a.acwr > 1.3).length} athletes above the usual load range. 3 of 4 staff on duty.`}</span>
+      <span class="muted">${greet()}. ${LIVE ? '' : S.track === 'clinical' ? '9 of 10 checked in. 2 notes waiting for your signature.' : `${ATH.filter(a => a.acwr > 1.3).length} athletes above the usual load range. 3 of 4 staff on duty.`}</span>
     </div>
     <div class="seg" role="group" aria-label="Track">
       <button data-act="track" data-arg="clinical" aria-pressed="${S.track === 'clinical'}" ${p.clinical ? '' : 'disabled title="Clinical track needs clinical access"'}>${p.clinical ? '' : lockIcon + ' '}Clinical</button>
@@ -306,10 +318,11 @@ function pageCommand() {
   if (S.track === 'clinical') {
     const open = ATH.filter(a => a.case);
     return head + `<div class="kpis">
-      <div class="kpi"><span class="eyebrow">Open cases</span><b>${open.length}</b><small>2 new this week</small></div>
+      ${LIVE ? `<div class="kpi"><span class="eyebrow">Open cases</span><b>${open.length}</b><small>${open.length ? 'active injuries on record' : 'no active injury recorded'}</small></div>
+      <div class="kpi"><span class="eyebrow">Updates today</span><b>${UPDATES.filter(u => (u.date || '') === TODAY_ISO || /^Today/.test(u.at || '')).length}</b><small>treatment updates logged</small></div>` : `<div class="kpi"><span class="eyebrow">Open cases</span><b>${open.length}</b><small>2 new this week</small></div>
       <div class="kpi"><span class="eyebrow">Seen today</span><b>3</b><small>of 6 booked</small></div>
       <div class="kpi"><span class="eyebrow">Notes to sign</span><b>2</b><small>oldest 16 h</small></div>
-      <div class="kpi"><span class="eyebrow">Return to play this week</span><b>1</b><small>Noor A. hop battery</small></div>
+      <div class="kpi"><span class="eyebrow">Return to play this week</span><b>1</b><small>Noor A. hop battery</small></div>`}
       <div class="kpi"><span class="eyebrow">Restricted records</span><b>${ATH.filter(a => a.private).length}</b><small>${S.priv ? 'private mode on' : 'private mode off'}</small></div></div>
     <div class="grid2">
       <section class="stack"><div class="sec-head"><h2>Decisions before training</h2><a class="btn sm" href="#athletes">All athletes</a></div>
@@ -634,7 +647,7 @@ const TODAY_ISO = ISO(TODAY);
 const STAFF2 = [{ id: 'jp', name: 'JP', joined: '2025-03-01' }, { id: 'olivia', name: 'Olivia', joined: '2025-06-01' }];
 const ACCRUAL = 2.5; // vacation days per month, PadelOps rule
 
-let EVENTS = store.get('events', null) || [
+let EVENTS = store.get('events', null) || demo([
   { id: 'e0', type: 'leave', who: ['jp'], from: '2026-07-06', to: '2026-07-24', note: 'Summer vacation' },
   { id: 'e00', type: 'leave', who: ['olivia'], from: '2026-08-03', to: '2026-08-21', note: 'Summer vacation' },
   { id: 'e1', type: 'leave', who: ['olivia'], from: '2026-10-05', to: '2026-10-06', note: 'Vacation' },
@@ -642,7 +655,7 @@ let EVENTS = store.get('events', null) || [
   { id: 'e3', type: 'leave', who: ['olivia'], from: '2026-11-02', to: '2026-11-06', note: 'Vacation' },
   { id: 'e4', type: 'trip', who: ['jp'], from: '2026-11-12', to: '2026-11-15', dest: '[Conference city]', purpose: 'Conference, sports medicine', access: ['jp', 'ops'] },
   { id: 'e5', type: 'leave', who: ['jp'], from: '2026-11-23', to: '2026-11-26', note: 'Vacation' }
-];
+], []);
 const DUTY_HOURS = { duty: 2.5, trip: 4 };
 function baseDuty(d, who) {
   const dow = d.getDay(); // 0 Sun ... 6 Sat
@@ -709,9 +722,9 @@ const OBS_FLAGS = ['Late split step when fatigued', 'Landing on a stiff knee', '
 const SOFT_REGIONS = ['Right foot and arch', 'Right calf', 'Left calf', 'Hamstrings', 'Hip and glutes', 'Lower back', 'Thoracic spine', 'Shoulder', 'Forearm and elbow', 'Neck', 'Feet'];
 const SOFT_TECH = ['Manual therapy', 'Massage', 'Soft tissue release', 'Instrument-assisted', 'Myofascial release', 'Trigger point', 'Massage, flush', 'Joint mobilisation', 'Stretching, assisted', 'Compression', 'Other'];
 const PROTO_PARTS = [['Muscle stimulation', 'Compex on calf and lower leg', 'Pads over the calf; strong comfortable contractions that support the arch'], ['Red and near-infrared light', 'Over the inner ankle and foot', 'Comfort add-on through the session; it does not replace loading'], ['Active control', 'Intrinsic foot work', 'Short-foot holds and arch control, driven into each contraction']];
-let DAILY = store.get('daily', null) || {
+let DAILY = store.get('daily', null) || demo({
   [TODAY_ISO]: { court: { type: 'lowload', min: 22, rpe: 4 }, proto: { done: true, kind: 'Mechanic', note: 'Split step timing: land as the opponent strikes' }, obs: { flags: ['Late split step when fatigued'], note: 'Movement sharp for 60 min, slower after' }, soft: { regions: ['Right foot and arch'], tech: ['Soft tissue release', 'Compression'], min: 20, response: 'Better' }, sent: false }
-};
+}, {});
 let GROUP = { name: 'the team physician', recipients: [] };
 const todayRec = () => (DAILY[TODAY_ISO] = DAILY[TODAY_ISO] || { court: { kind: 'Training', min: 0, rpe: 0 }, proto: { done: false, kind: 'Mechanic', note: '' }, obs: { flags: [], note: '' }, soft: { regions: [], tech: [], min: 0, response: 'Better' }, sent: false });
 const P1 = () => ATH.find(a => a.id === 'p1');
@@ -754,7 +767,8 @@ function pagePlayer1() {
   const duty = `<span class="muted" style="font-size:14px">On duty: ${cov.map(c => `<b style="color:var(--ink)">${c.s.name}</b> ${c.st === 'duty' ? 'on duty' : c.st === 'trip' ? 'away, official' : c.st}`).join(' · ')}</span>`;
   const dash = p1Dash(T, cov, au, planAU);
   if (!perm().clinical) return p1Hero(T, '') + `<div>${p1Tabs('player1')}</div>` + dash + rtRibbon(T.idx) + `<section class="panel"><h3>For the coach</h3><p style="margin:0">Today's colour, minutes and stop rule are above. Clinical notes, symptoms and treatment stay with JP and Olivia.</p></section>`;
-  return p1Command(T, au, planAU) + p1Wins(T, r) + p1Brief() + (typeof p1LearnStrip === 'function' ? p1LearnStrip() : '') + p1GuideScale(T, r) + p1Forecast(T, r) + p1Switchboard() + `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">${p1Tabs('player1')}</div>${dash}<div class="sec-head" style="margin-top:4px"><div><span class="eyebrow">Today's log</span><h2>Daily cover</h2></div></div><nav class="hxs-rail" aria-label="Daily cover steps"></nav>
+  const confirmPlan = LIVE && !store.get('rt-cfg', null) ? `<section class="panel" style="border-color:var(--warn)"><span class="eyebrow">Before using today's plan</span><h2>Confirm the return plan start date</h2><p class="muted" style="margin:0">The plan's weeks, minutes and colours count from its start date. Nobody has confirmed it on this server yet, so the week shown may be wrong.</p><a class="btn primary sm" href="#return">Open the return plan</a></section>` : '';
+  return confirmPlan + p1Command(T, au, planAU) + p1Brief() + (typeof p1LearnStrip === 'function' ? p1LearnStrip() : '') + p1GuideScale(T, r) + p1Forecast(T, r) + p1Switchboard() + `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">${p1Tabs('player1')}</div>${dash}<div class="sec-head" style="margin-top:4px"><div><span class="eyebrow">Today's log</span><h2>Daily cover</h2></div></div><nav class="hxs-rail" aria-label="Daily cover steps"></nav>
   <div class="grid2"><div class="stack" style="gap:16px">
     ${step(1, 'Morning check-in', RS.at === TODAY_ISO, p1CheckIn(T))}
     ${step(2, 'Warm-up routine', !!r.court.warm, `<div class="grid3" style="gap:14px;align-items:end"><div class="ftc-wrap"><input id="ftc-warm" type="checkbox" data-dy="court.warm" ${r.court.warm ? 'checked' : ''}><label for="ftc-warm">Warm-up routine done</label></div>
@@ -1000,7 +1014,7 @@ function render() {
 function renderNow() {
   let r = location.hash.slice(1) || (me().role === 'athlete' || !seesAthlete(P1()) ? 'command' : 'player1');
   if (r === 'p1anat' && !seesAthlete(P1())) r = 'anatomy';
-  if (r === 'p1anat' && S.route !== 'p1anat') { AN.pending = 'spring_ligament_R'; AN.sel = 'spring_ligament_R'; }
+  if (r === 'p1anat' && S.route !== 'p1anat') { const st = LIVE ? (P1().case && P1().case.structure) || null : 'spring_ligament_R'; AN.pending = st; AN.sel = st; }
   const base = r.startsWith('athlete-') ? 'athletes' : r;
   if (!allowedRoutes().includes(base)) r = 'command';
   S.route = r;
