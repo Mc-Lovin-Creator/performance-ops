@@ -45,7 +45,7 @@ def main():
             'worker-src \'self\' blob:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src \'self\' https://fonts.gstatic.com data:; '
             'img-src \'self\' data: blob:; media-src \'self\' blob: data:; connect-src \'self\' %REACT_APP_BACKEND_URL% https://cdnjs.cloudflare.com https://cdn.jsdelivr.net '
             'https://eutils.ncbi.nlm.nih.gov https://www.ebi.ac.uk; object-src \'none\'; base-uri \'none\'; form-action \'self\'">'
-            '<link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><script>window.PLOS_API="%REACT_APP_BACKEND_URL%";</script></head><body>')
+            '<link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><script>window.PLOS_API="%REACT_APP_BACKEND_URL%";if(window.top!==window.self){document.documentElement.innerHTML="<body style=\\"font:16px system-ui;padding:24px\\">Performance Ops cannot be shown inside another website.</body>";throw new Error("framed");}</script></head><body>')
     (pub / "index.html").write_text(head + page + "</body></html>", encoding="utf-8")
     for f in (ASSETS / "pwa").glob("*"):   # installable on phones (home-screen icon, full screen); no service worker, so nothing clinical is cached offline
         shutil.copy(f, pub / f.name)
