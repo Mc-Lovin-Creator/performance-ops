@@ -56,7 +56,7 @@ class Security(unittest.TestCase):
         self.assertEqual(k.open(s), v)
 
     def test_every_key_classified(self):
-        self.assertTrue(all(s in ("user", "team", "clinic", "p1") for s in KEYS.values()))
+        self.assertTrue(all(s in ("user", "team", "clinic", "p1", "staff") for s in KEYS.values()))
 
 
 class Policy(unittest.TestCase):
