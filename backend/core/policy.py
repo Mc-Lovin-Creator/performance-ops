@@ -8,6 +8,7 @@ Scopes
   team    shared with the team
   clinic  clinical, shared with clinicians; encrypted at rest
   p1      Player 1 clinical; only users with the Player 1 flag; encrypted at rest
+  staff   staff only (no athletes): the team knowledge base; encrypted at rest
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ KEYS: dict[str, str] = {
     "me": "user", "priv": "user", "lastStaff": "user", "nprof": "user", "fx": "user", "labsOpen": "user",
     # team
     "bookings": "team", "events": "team", "group": "team", "ideas": "team", "msgs": "team",
-    "mtier": "team", "scout": "team", "scoutdigest": "team", "rstation": "team", "sqcap": "team", "sqmin": "team", "tracklog": "team", "trials": "team",
+    "mtier": "team", "scout": "team", "scoutdigest": "team", "kb": "staff", "rstation": "team", "sqcap": "team", "sqmin": "team", "tracklog": "team", "trials": "team",
     # clinical (squad)
     "updates": "clinic", "assess": "clinic", "cl": "clinic", "consent": "clinic",
     # records vault: already AES-256-GCM ciphertext from the browser; the server encrypts it again at rest
@@ -36,7 +37,7 @@ KEYS: dict[str, str] = {
 
 # team keys an athlete may write (everything else in team is staff-only)
 ATHLETE_TEAM_WRITE = {"msgs", "bookings"}
-ENCRYPTED_SCOPES = {"clinic", "p1"}
+ENCRYPTED_SCOPES = {"clinic", "p1", "staff"}
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,8 @@ def can_read(user: User, key: str) -> bool:
         return True
     if s == "clinic":
         return user.role in CLINICAL_ROLES
+    if s == "staff":
+        return user.role in STAFF_ROLES
     if s == "p1":
         return user.p1 and user.role in CLINICAL_ROLES
     return False

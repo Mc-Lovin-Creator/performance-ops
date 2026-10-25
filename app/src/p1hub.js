@@ -17,8 +17,8 @@ function pageP1Tx() {
   return p1Head('p1tx', 'Treatment', 'daily updates and assessments') + `
   <div class="grid2"><section class="panel"><h2>Log today's treatment</h2>${can ? `<form id="upd" class="stack">
     <select id="u-ath" hidden><option value="p1">Player 1</option></select>
-    <div class="grid3" style="gap:14px"><label class="field">Pain now: <output id="u-pain-o">2</output> / 10<input id="u-pain" type="range" min="0" max="10" value="2" oninput="document.getElementById('u-pain-o').textContent=this.value"></label>
-    <label class="field">Stage<select id="u-stage">${STAGES.map(s => `<option ${a.case.stage === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
+    <div class="grid3" style="gap:14px">${LIVE ? `<label class="field">Pain now (0 none to 10 worst)<select id="u-pain" required><option value="">Choose</option>${[...Array(11).keys()].map(n => `<option>${n}</option>`).join('')}</select></label>` : `<label class="field">Pain now: <output id="u-pain-o">2</output> / 10<input id="u-pain" type="range" min="0" max="10" value="2" oninput="document.getElementById('u-pain-o').textContent=this.value"></label>`}
+    <label class="field">Stage<select id="u-stage">${STAGES.map(s => `<option ${a.case && a.case.stage === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
     <label class="field">Response<select id="u-resp"><option>Better</option><option>Same</option><option>Worse</option></select></label></div>
     <div class="field">Treatment given<div class="pills" id="u-mods">${P1_MODS.map(m => `<button type="button" class="pill" data-act="mod" data-arg="${m}" aria-pressed="false">${m}</button>`).join('')}</div></div>
     <label class="field">Plan and next step<textarea id="u-plan" placeholder="What happens next, and what the coach needs to know"></textarea></label>

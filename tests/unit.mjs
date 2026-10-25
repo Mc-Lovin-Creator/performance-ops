@@ -23,4 +23,9 @@ eq([mri.type, mri.dates[0], /Grade 2 sprain/.test(mri.sections.impression), /par
 const labs = dr.docSummarise([['Ferritin 18 ug/L (30-400) L', 'Haemoglobin 145 g/L (130-170)', 'Vitamin D 25-OH 38 nmol/L (50-125)', 'Creatine kinase 820 U/L H']]);
 eq([labs.type, labs.flags.map(f => f.test + ' ' + f.dir)], ['Lab results', ['Ferritin low', 'Vitamin D 25-OH low', 'Creatine kinase high']], 'PDF summary: out-of-range results flagged, normal ones left out');
 eq(/Ferritin 18 ug\/L \(range 30–400\) low/.test(dr.docSummaryText(labs)), true, 'PDF summary text lists flagged results');
+const kb = load('kb.js', 'kbGuard,kbRender,kbLinks', { esc: x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])), store: { get: (k, d) => d }, ATH: [{ id: 'p1', name: 'Player 1' }, { id: 'x', name: 'Sara Example' }], me: () => ({ role: 'lead', name: 'JP' }), S: {}, audit() {}, toast() {}, keepRender() {}, anSvg: () => '', window: {} });
+eq(kb.kbGuard('Warm-up protocol for the squad. Player 1 follows the same.'), [], 'knowledge: programme notes with the pseudonym pass');
+eq(kb.kbGuard('Call 050 123 4567 or mail a@b.com; Sara Example DOB 1990; ID 784-1990-1234567-1').length, 5, 'knowledge: phone, email, DOB and athlete name refused');
+eq(kb.kbLinks({ body: 'See [[Load monitoring rules]] and [[Return-to-padel criteria]].' }), ['Load monitoring rules', 'Return-to-padel criteria'], 'knowledge: links read from [[...]]');
+eq(/<script>/.test(kb.kbRender('<script>alert(1)</script>')), false, 'knowledge: note text is escaped');
 if (fail) process.exit(1); console.log('unit tests passed');

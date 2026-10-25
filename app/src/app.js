@@ -9,6 +9,7 @@ const BOX = (() => { try { return LIVE ? sessionStorage : localStorage; } catch 
 /* Removed for clinical use (v47): film-style chapter cards, confetti, streak and mission rewards, holographic morph.
    An injured athlete should not be rewarded for streaks of load; the stubs keep older call sites harmless. */
 const chapterSlate = () => { }, holoMount = () => { }, holoCard = () => '', holoTo = () => { }, celebrate = () => { }, funAfterRender = () => { }, p1Wins = () => '', HOLO_DOM = {};
+const nowStamp = () => new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 /* demo(x, empty): the example content only in the offline demo; on the team server the real record or nothing */
 const demo = (x, empty) => LIVE ? empty : x;
 const store = { get(k, d) { try { const v = BOX.getItem('plos.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { BOX.setItem('plos.' + k, JSON.stringify(v)); } catch (e) { } } };
@@ -270,6 +271,7 @@ const NAV = [
   ['§', 'Labs'],
   ['recovery', 'Recovery and track', '<path d="M12 21c-4-3-7-6-7-10a7 7 0 0 1 14 0c0 4-3 7-7 10z"/><path d="M9 11h6"/>'],
   ['build', 'Build status', '<path d="M4 6h16M4 12h10M4 18h7"/><path d="m15 17 2 2 4-4"/>'],
+  ['kb', 'Knowledge', '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h7M8 11h5"/>'],
   ['agents', 'Agents', '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M3 13v2M21 13v2"/>'],
   ['innovation', 'Innovation', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>']
 ];
@@ -277,9 +279,9 @@ const P1_ROUTES = ['player1', 'calendar', 'return', 'loadlab', 'p1tx', 'p1rec', 
 function allowedRoutes() {
   const r = me().role;
   if (r === 'athlete') return ['command', 'myfoot', 'book', 'anatomy', 'learn', 'ask', 'messages'];
-  if (r === 'coach') return ['command', 'recovery', 'members', 'book', 'athletes', 'anatomy', 'classify', 'learn', 'ask', 'messages', 'innovation'];
-  if (r === 'physician') return [...P1_ROUTES, 'command', 'members', 'book', 'athletes', 'calendar', 'treatment', 'records', 'assess', 'classify', 'anatomy', 'learn', 'ask', 'messages', 'agents', 'innovation'];
-  if (r === 'manager') return ['command', 'recovery', 'members', 'book', 'athletes', 'classify', 'learn', 'ask', 'messages', 'agents', 'innovation', 'trust', 'build', 'audit', 'pilot'];
+  if (r === 'coach') return ['command', 'recovery', 'members', 'book', 'athletes', 'anatomy', 'classify', 'learn', 'ask', 'messages', 'innovation', 'kb'];
+  if (r === 'physician') return [...P1_ROUTES, 'command', 'members', 'book', 'athletes', 'calendar', 'treatment', 'records', 'assess', 'classify', 'anatomy', 'learn', 'ask', 'messages', 'agents', 'innovation', 'kb'];
+  if (r === 'manager') return ['command', 'recovery', 'members', 'book', 'athletes', 'classify', 'learn', 'ask', 'messages', 'agents', 'innovation', 'kb', 'trust', 'build', 'audit', 'pilot'];
   return [...NAV.filter(n => n[0] !== '§').map(n => n[0]), 'assess'];
 }
 const NAVP = { assess: 'treatment' };
@@ -965,7 +967,7 @@ function dmContext(c) {
   <label class="layer"><input type="checkbox" data-act="dm-guard" ${CRY.guard ? 'checked' : ''}> Hide messages when this window loses focus</label>
   <span class="muted" style="font-size:12px">Prototype: keys live in this browser so you can switch people. In the build, each private key is created on and never leaves its owner's phone, with forward secrecy (Signal protocol via Matrix).</span>`;
 }
-async function dmSend(chan, text) { await crySeal(chan, S.me, text, 'Now'); CRY.plain[chan] = null; audit('Sent encrypted message', CHANNELS.find(c => c.id === chan).name + ' · content not logged'); render(); }
+async function dmSend(chan, text) { await crySeal(chan, S.me, text, nowStamp()); CRY.plain[chan] = null; audit('Sent encrypted message', CHANNELS.find(c => c.id === chan).name + ' · content not logged'); render(); }
 window.addEventListener('blur', () => { if (CRY.guard) document.querySelectorAll('.dm-text').forEach(e => e.classList.add('blur')); });
 window.addEventListener('focus', () => document.querySelectorAll('.dm-text').forEach(e => e.classList.remove('blur')));
 
@@ -1021,7 +1023,7 @@ function renderNow() {
   const page = $('#page');
   page.innerHTML = (S.priv ? `<div class="banner">${lockIcon} Private mode is on. ${ATH.filter(a => a.private).length} private records and ${CHANNELS.filter(c => c.private).length} private threads are limited to their access lists.</div>` : '') + (
     r === 'command' ? pageCommand() : r === 'player1' ? pagePlayer1() : r === 'return' ? pageReturn() + (perm().clinical ? transitionCard() : '') : r === 'loadlab' ? pageLoadLab() + wearPanel() : r === 'calendar' ? pageCalendar() + leaveRequests() : r === 'assess' ? pageAssess() : r === 'p1tx' ? pageP1Tx() : r === 'p1inj' ? pageP1Inj() : r === 'p1test' ? pageP1Test() : r === 'p1edu' ? pageP1Edu() : r === 'p1chat' ? pageP1Chat() : r === 'myfoot' ? pageMyFoot() : r === 'learn' && me().role === 'athlete' ? pageLearnAthlete() : r === 'athletes' ? pageTeam() : r.startsWith('athlete-') ? athleteHub(r.slice(8)) : r === 'treatment' ? pageTreatment() : r === 'anatomy' || r === 'p1anat' ? pageAnatomy() :
-      r === 'book' ? pageBook() : r === 'classify' ? pageClassify() : r === 'learn' ? pageLearn() : r === 'messages' ? pageMessages() : r === 'innovation' ? innovationInbox() + pageInnovation() + equipmentPanel() : r === 'agents' ? pageAgents() : r === 'p1rx' ? pageP1Rx() : r === 'p1kit' ? pageP1Kit() : r === 'recovery' ? pageRecovery() : r === 'build' ? pageBuild() : r === 'pilot' ? pagePilot() : r === 'audit' ? pageAudit() : r === 'members' ? pageMembers() : r === 'records' ? pageRecords('all') : r === 'p1rec' ? pageRecords('p1') + consentCard(P1()) : r === 'ask' ? pageAsk() : pageTrust());
+      r === 'book' ? pageBook() : r === 'classify' ? pageClassify() : r === 'learn' ? pageLearn() : r === 'messages' ? pageMessages() : r === 'innovation' ? innovationInbox() + pageInnovation() + equipmentPanel() : r === 'kb' ? pageKB() : r === 'agents' ? pageAgents() : r === 'p1rx' ? pageP1Rx() : r === 'p1kit' ? pageP1Kit() : r === 'recovery' ? pageRecovery() : r === 'build' ? pageBuild() : r === 'pilot' ? pagePilot() : r === 'audit' ? pageAudit() : r === 'members' ? pageMembers() : r === 'records' ? pageRecords('all') : r === 'p1rec' ? pageRecords('p1') + consentCard(P1()) : r === 'ask' ? pageAsk() : pageTrust());
   renderNav(); syncMode(); document.body.dataset.role = me().role;
   if (r === 'anatomy' || r === 'p1anat') mountAnatomy();
   cineAfterRender(); chapterSlate(r); holoMount(); if (window.AnatomyLab && AnatomyLab.roles && !document.getElementById('mo-host') && !(typeof OC !== 'undefined' && OC.keys && OC.roles)) AnatomyLab.roles(null);
@@ -1036,14 +1038,18 @@ function bindForms() {
     e.preventDefault();
     const mods = [...document.querySelectorAll('#u-mods .pill[aria-pressed="true"]')].map(b => b.dataset.arg);
     const ath = $('#u-ath').value, a = ATH.find(x => x.id === ath);
-    const u = { id: 'u' + Date.now(), ath, by: S.me, at: 'Now', pain: +$('#u-pain').value, mods: mods.length ? mods : ['Exercise therapy'], response: $('#u-resp').value, plan: $('#u-plan').value || 'Continue current plan.', stage: $('#u-stage').value, shared: $('#u-share').checked };
-    UPDATES.unshift(u); a.case.stage = u.stage; a.case.pain.push(u.pain);
-    if (u.shared) { const c = CHANNELS.find(x => x.ath === ath); if (c) { (MSGS[c.id] = MSGS[c.id] || []).push([S.me, 'Now', `Treatment update: ${u.mods.join(', ')}. ${u.plan}`, 'Treatment update · pain ' + u.pain + '/10']); } }
+    /* a clinical record states only what was done: no default treatment, no default pain, and a real timestamp */
+    if (!mods.length) { toast('Pick the treatment you gave before saving'); return; }
+    if ($('#u-pain').value === '') { toast('Record his pain now (0 to 10) before saving'); return; }
+    const now = new Date(), stamp = now.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const u = { id: 'u' + Date.now(), ath, by: S.me, at: stamp, ts: now.toISOString(), date: TODAY_ISO, pain: +$('#u-pain').value, mods, response: $('#u-resp').value, plan: $('#u-plan').value || 'Continue current plan.', stage: $('#u-stage').value, shared: $('#u-share').checked };
+    UPDATES.unshift(u); if (a.case) { a.case.stage = u.stage; a.case.pain.push(u.pain); }
+    if (u.shared) { const c = CHANNELS.find(x => x.ath === ath); if (c) { (MSGS[c.id] = MSGS[c.id] || []).push([S.me, stamp, `Treatment update: ${u.mods.join(', ')}. ${u.plan}`, 'Treatment update · pain ' + u.pain + '/10']); } }
     store.set('updates', UPDATES); store.set('msgs', MSGS); audit('Logged treatment', a.name);
     toast(u.shared ? 'Update saved and sent to the physician' : 'Update saved'); render();
   });
   const comp = $('#composer');
-  if (comp) comp.addEventListener('submit', e => { e.preventDefault(); const v = $('#msg-in').value.trim(); if (!v) return; const cc = CHANNELS.find(x => x.id === S.ch); if (cc && cc.kind === 'dm') { dmSend(S.ch, v); return; } (MSGS[S.ch] = MSGS[S.ch] || []).push([S.me, 'Now', v]); store.set('msgs', MSGS); render(); setTimeout(() => $('#msg-in') && $('#msg-in').focus(), 0); });
+  if (comp) comp.addEventListener('submit', e => { e.preventDefault(); const v = $('#msg-in').value.trim(); if (!v) return; const cc = CHANNELS.find(x => x.id === S.ch); if (cc && cc.kind === 'dm') { dmSend(S.ch, v); return; } (MSGS[S.ch] = MSGS[S.ch] || []).push([S.me, nowStamp(), v]); store.set('msgs', MSGS); render(); setTimeout(() => $('#msg-in') && $('#msg-in').focus(), 0); });
   document.querySelectorAll('[data-cl]').forEach(el => el.addEventListener('change', () => { const k = el.dataset.cl; CL[k] = el.type === 'checkbox' ? el.checked : el.value; store.set('cl', CL); const y = scrollY; render(); scrollTo(0, y); }));
   document.querySelectorAll('[data-ice]').forEach(el => el.addEventListener('change', () => { const [id, k] = el.dataset.ice.split(':'); IDEAS.find(i => i.id === id)[k] = +el.value; store.set('ideas', IDEAS); const y = scrollY; render(); scrollTo(0, y); }));
   document.querySelectorAll('[data-dy]').forEach(el => el.addEventListener('change', () => { const [g, k] = el.dataset.dy.split('.'); const r = todayRec(); r[g] = r[g] || {}; r[g][k] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? +el.value : el.value; r.sent = false; if (el.closest('.ftc-wrap') && el.checked) setTimeout(saveDaily, 750); else saveDaily(); }));
@@ -1108,7 +1114,7 @@ document.addEventListener('click', e => {
     case 'dy-tech': toggleIn(todayRec().soft.tech, arg); saveDaily(); break;
     case 'proto-go': protoToggle(); break;
     case 'proto-reset': clearInterval(PROTO.timer); PROTO.running = false; PROTO.t = 420; keepRender(); break;
-    case 'send-group': { const r = todayRec(); (MSGS['p1-daily'] = MSGS['p1-daily'] || []).push([S.me, 'Now', agentDraft().join('\n'), 'Daily update · agent draft']); r.sent = true; store.set('msgs', MSGS); saveDaily(); audit('Sent daily update', 'Team physician'); toast('Sent to the team physician'); break; }
+    case 'send-group': { const r = todayRec(); (MSGS['p1-daily'] = MSGS['p1-daily'] || []).push([S.me, nowStamp(), agentDraft().join('\n'), 'Daily update · agent draft']); r.sent = true; store.set('msgs', MSGS); saveDaily(); audit('Sent daily update', 'Team physician'); toast('Sent to the team physician'); break; }
     case 'cal': CALV.m += +arg; if (CALV.m > 11) { CALV.m = 0; CALV.y++; } if (CALV.m < 0) { CALV.m = 11; CALV.y--; } render(); break;
     case 'evwho': case 'evacc': t.setAttribute('aria-pressed', t.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); break;
     case 'dm-verify': CRY.verified[arg] = !CRY.verified[arg]; toast(CRY.verified[arg] ? 'Safety number verified' : 'Verification removed'); render(); break;

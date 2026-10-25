@@ -196,6 +196,16 @@ class Records(unittest.TestCase):
         self.assertEqual((r.status_code, r.json()["added"]), (200, 0))
         self.assertFalse(self.c.get("/api/scout/status", headers=login(self.c, "jp@lab.test")).json()["grok"])
 
+    def test_knowledge_base_is_staff_only(self):
+        self.assertTrue(can_read(User("3", "c", "coach", "javi", False), "kb"))
+        self.assertFalse(can_read(User("7", "a", "athlete", "p1", False), "kb"))
+        self.assertFalse(can_write(User("7", "a", "athlete", "p1", False), "kb"))
+        h = login(self.c, "javi@lab.test")
+        r = self.c.patch("/api/state/kb/records", headers=h, json={"kind": "map", "changes": {"n1": {"title": "Warm-up standard"}}, "base": {}})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertIn("sealed", self.store.state[("shared", "kb")])
+        self.assertEqual(self.c.get("/api/state/kb", headers=login(self.c, "p1@lab.test")).status_code, 403)
+
     def test_list_records_and_delete(self):
         h = login(self.c, "olivia@lab.test")
         self.c.patch("/api/state/assess/records", headers=h, json={"kind": "list", "changes": {"a": {"id": "a", "x": 1}, "b": {"id": "b", "x": 2}}, "base": {}})

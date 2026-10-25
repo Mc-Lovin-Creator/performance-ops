@@ -55,6 +55,20 @@ function agStatus(id) {
   if (id === 'ask') return AG.cap.sample ? ['ok', 'Ready'] : ['off', 'Not available in this view'];
   return ['ok', 'Running in the app'];
 }
+/* Where every bot lives: one map of the places, what runs there and what each can touch. */
+const AG_PLACES = [
+  ['cloud', 'Claude cloud · scheduled', 'Runs on Anthropic\'s servers on a schedule. Reads only public web sources and the questions queued for it.', [['Innovation scout', 'Daily 05:44', 'Public web', 'scout'], ['Evidence watch', 'Mondays 06:15', 'Journals, PubMed', 'evidence'], ['Ask desk', 'Hourly 07:00 to 21:00', 'Queued questions', 'askdesk']]],
+  ['server', 'Performance Ops server', 'Runs next to your data. The only bots that touch Player 1 data live here, under his consent and the Player 1 access rules.', [['Grok scout', 'Daily, once keyed', 'Web and X (public only)', 'grok'], ['Wearable sync', 'Daily, once set up', 'Player 1\'s WHOOP, with consent', 'wear']]],
+  ['app', 'Inside the app', 'Run in each person\'s browser on data they can already see. Nothing leaves the device.', [['Morning brief', 'When the app opens', 'Player 1 status, duty'], ['Load watch', 'Every load entry', 'Minutes, wellness'], ['Education curator', 'Daily', 'Tiers, injuries'], ['Update drafter', 'After the daily cover', 'Player 1 cover'], ['Privacy guard', 'Continuously', 'Audit log']]],
+  ['build', 'Builders', 'Change the app itself, never the data.', [['Emergent agent', 'When asked', 'GitHub main, staging server'], ['Claude', 'When asked', 'The repository and tests']]]];
+function agMap() {
+  const srv = typeof SYNC !== 'undefined' && SYNC.on, st = AG.srvStatus;
+  if (srv && !st && !AG.srvAsked) { AG.srvAsked = true; SYNC.api('GET', '/scout/status').then(r => { if (r.ok) { AG.srvStatus = r.body; keepRender(); } }).catch(() => { }); }
+  const dot = id => id === 'grok' ? (srv && st ? (st.grok ? (st.scheduled ? 'ok' : 'wait') : 'off') : 'off') : id === 'wear' ? 'off' : ['scout', 'evidence', 'askdesk'].includes(id) ? agStatus(id)[0] : 'ok';
+  return `<section class="panel ag-map"><div class="sec-head"><div><span class="eyebrow">Where every bot is</span><h2>${AG_PLACES.reduce((n, p) => n + p[3].length, 0)} bots in 4 places</h2></div><span class="muted" style="font-size:13px">Your personal agents are on your own Swarm page, not here</span></div>
+    <div class="ag-places">${AG_PLACES.map(([id, name, why, bots]) => `<div class="ag-place ag-${id}"><b>${name}</b><p>${why}</p><ul>${bots.map(b => { const d = dot(b[3]); return `<li><span class="dot-st st-${d}"></span><span class="grow"><b>${esc(b[0])}</b><em>${esc(b[1])} · ${esc(b[2])}</em></span></li>`; }).join('')}</ul></div>`).join('')}</div>
+    <p class="muted" style="margin:0;font-size:12.5px">Green: running. Amber: waiting for its first run. Grey: switched off until its keys or consent are in place.</p></section>`;
+}
 function pageAgents() {
   const kinds = [['External', 'Search the web on a schedule'], ['Live', 'Answers on demand'], ['Internal', 'Run on the app\'s own data, nothing leaves it']];
   const card = g => { const st = agStatus(g.id), open = AG.open === g.id;
@@ -67,6 +81,7 @@ function pageAgents() {
   return `<div class="sec-head"><div><span class="eyebrow">${AGENTS.length} agents · external, live and internal</span><h1 style="font-size:34px;letter-spacing:-.6px">Agents</h1></div><a class="btn" href="#ask">Ask</a></div>
   <section class="ag-hero"><div><span class="eyebrow">How they work together</span><p>External agents bring the outside world in on a schedule. Internal agents work only on our own data and never send it out. Nothing reaches an athlete until a clinician pushes it.</p></div>
     <div class="ag-net" aria-hidden="true">${AGENTS.map((g, i) => { const a = i / AGENTS.length * Math.PI * 2 - Math.PI / 2; return `<span style="--x:${50 + Math.cos(a) * 40}%;--y:${50 + Math.sin(a) * 40}%;--ag:${g.color};--d:${i * 0.35}s" title="${g.name}"></span>`; }).join('')}<b>Lab</b></div></section>
+  ${agMap()}
   ${kinds.map(([k, d]) => `<section class="stack" style="gap:12px"><div><span class="eyebrow">${k}</span><h2 style="font-size:20px">${d}</h2></div><div class="ag-grid">${AGENTS.filter(g => g.kind === k).map(card).join('')}</div></section>`).join('')}
   <section class="panel"><div class="sec-head"><h2>Run log</h2><span class="muted" style="font-size:13px">Written by the agents themselves</span></div>${feed.length ? `<div class="rows">${feed.map(r => `<div class="row" style="font-size:13.5px"><span class="dot" style="background:${(AGENTS.find(g => g.id === r.agent) || {}).color || '#888'}"></span><span class="grow"><b>${esc((AGENTS.find(g => g.id === r.agent) || {}).name || r.agent)}</b> · ${esc(r.summary || '')}</span><span class="muted num">${new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')}</div>` : `<p class="muted" style="margin:0">${AG.cap.db ? 'No runs yet. The first scheduled run fills this.' : 'The run log needs the shared store, which this view does not have.'}</p>`}</section>`;
 }

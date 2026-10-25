@@ -58,3 +58,12 @@ git tag release-$(date +%F) && git push origin --tags
 - Records: the vault now saves to the team server (it was browser memory only); Player 1 has a separate vault and passphrase.
 - Fix: every click in the app was redrawing the page and could wipe what someone was typing.
 - Innovation scout on the server: Grok on the web and X, plus chosen feeds, with domain summaries (stage 4b, optional).
+
+## 2026-10-25
+- Audit: on the team server the app shows only real records. All demo clinical content (Player 1's diagnosis, tests, daily cover, 42 days of generated load and symptoms, the invented squad) is gone there; empty states say what to record first.
+- No check-in today reads as Modify, never Ready. The load ratio is shown only after 14 logged days in the last 28. Yesterday's symptoms never carry over.
+- Treatment updates need the treatment actually given and a pain score; every record gets a real timestamp.
+- Security: sessions end when a password, two-step setting or access changes; each two-step code works once; changing an authenticator needs the password and a current code; per-account login limit; no account enumeration; clinical data kept for the open tab only; 15-minute idle sign-out for Player 1 clinicians; pdf.js pinned by hash; content-security policy and HSTS.
+- The return plan's start date and today's symptom check-in now sync (they were refused by the server before).
+- Removed: chapter title cards, confetti, streak and mission rewards, holographic morph, hologram look, assemble/deconstruct. "Activation heat" is now "length change (not EMG)", and the lab states the model's limits.
+- New: Knowledge, the team's second brain (staff only, encrypted, refuses patient identifiers), and "Where every bot is" on the Agents page.
