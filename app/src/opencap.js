@@ -47,7 +47,7 @@ function ocPanel() {
     <div style="display:flex;gap:6px;flex-wrap:wrap"><label class="btn sm primary" style="cursor:pointer">Load .mot file<input type="file" accept=".mot,.sto,.txt" data-oc="file" hidden></label><button class="btn sm" data-oc="sample">Try a sample</button>${OC.keys ? `<button class="btn sm" data-oc="stop">Stop</button>` : ''}</div>
     ${OC.err ? `<p class="login-err" style="margin:0">${esc(OC.err)}</p>` : ''}
     ${OC.keys ? `<div class="oc-now"><b>${esc(OC.name)}</b><span>${OC.dur ? OC.dur.toFixed(1) + ' s · ' : ''}${OC.keys.length} frames</span></div>
-      <label class="range">Show muscle roles as<select data-oc="roles"><option value="">Activation heat</option>${MOTIONS.map(m => `<option value="${m.id}" ${OC.roles === m.id ? 'selected' : ''}>${esc(m.sub)}</option>`).join('')}</select></label>
+      <label class="range">Show muscle roles as<select data-oc="roles"><option value="">Length change (not EMG)</option>${MOTIONS.map(m => `<option value="${m.id}" ${OC.roles === m.id ? 'selected' : ''}>${esc(m.sub)}</option>`).join('')}</select></label>
       <div class="oc-peaks">${OC.peaks.filter(p => isFinite(p[1]) && p[1] > 0).map(([l, v]) => `<div><span>${esc(l)}</span><b>${v}°</b></div>`).join('')}</div>` : ''}
     <p class="muted" style="margin:0;font-size:11.5px">OpenCap (Uhlrich et al. 2023, PLOS Comput Biol) turns two-phone video into joint angles; its accuracy is a few degrees for most lower-limb joints. Use it to compare sessions, not as a lab-grade measure.</p></div>`;
 }

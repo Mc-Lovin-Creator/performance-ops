@@ -23,7 +23,7 @@ try {
   check(true, 'signed in as lead');
   await p.evaluate(() => { location.hash = 'player1'; }); await p.waitForTimeout(800);
   // trigger a Player 1 save through the app's own store
-  await p.evaluate(() => { const k = 'plos.daily', v = JSON.parse(localStorage.getItem(k) || '{}'); v['e2e-day'] = { court: { min: 30 } }; localStorage.setItem(k, JSON.stringify(v)); });
+  await p.evaluate(() => { const k = 'plos.daily', v = JSON.parse(sessionStorage.getItem(k) || '{}'); v['e2e-day'] = { court: { min: 30 } }; sessionStorage.setItem(k, JSON.stringify(v)); });
   await p.evaluate(() => window.__app && window.__app.go ? 0 : 0);
   await p.locator('.cov-step input, .cov-step button').first().click({ trial: true }).catch(() => {});
   // the app saves via store.set; call a harmless setter path: toggle theme (user key) and write daily through store
@@ -59,7 +59,7 @@ try {
   await p.click('[data-wdev="sync"][data-arg="oura"]'); await p.waitForTimeout(1500);
   const wv = await (await fetch('http://localhost:8011/api/state/wear', { headers: H })).json();
   check(Object.values(wv.value || {}).some(d => d.src === 'Oura' && d.hrv === 61), 'synced days are in Player 1\'s encrypted wear record');
-  let pulled = false; for (let i = 0; i < 20 && !pulled; i++) { pulled = await p.evaluate(() => Object.values(JSON.parse(localStorage.getItem('plos.wear') || '{}')).some(d => d.src === 'Oura')); if (!pulled) await p.waitForTimeout(500); }
+  let pulled = false; for (let i = 0; i < 20 && !pulled; i++) { pulled = await p.evaluate(() => Object.values(JSON.parse(sessionStorage.getItem('plos.wear') || '{}')).some(d => d.src === 'Oura')); if (!pulled) await p.waitForTimeout(500); }
   check(pulled, 'app pulled the synced days');
   check(!JSON.stringify(await (await fetch('http://localhost:8011/api/state', { headers: H })).json()).includes('oura-at'), 'provider tokens never reach the browser');
   if (process.env.E2E_SHOT) { await p.evaluate(() => document.querySelector('.wear').scrollIntoView()); await p.screenshot({ path: process.env.E2E_SHOT }); }
@@ -73,7 +73,8 @@ try {
   await p.click('.acct [data-close]');
   check(errs.length === 0, 'no page errors in accounts (' + errs.join(' | ').slice(0, 200) + ')');
   await p.click('#sync-badge [data-out]'); await p.waitForSelector('.login-c');
-  const left = await p.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('plos.')).length);
+  const left = await p.evaluate(() => [localStorage, sessionStorage].reduce((n, box) => n + Object.keys(box).filter(k => k.startsWith('plos')).length, 0));
   check(left === 0, 'sign-out clears the device copy');
+  check(await p.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('plos')).length) === 0, 'nothing was ever kept in localStorage');
 } finally { await b.close(); srv.kill(); }
 if (fail) process.exit(1); console.log('sync e2e passed');
