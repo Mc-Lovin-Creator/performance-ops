@@ -53,4 +53,5 @@ Edit this file as you go (on GitHub: pencil icon, then commit to `main`). One li
 
 | Tag | Date | What changed |
 | --- | --- | --- |
+| branch release/2026-10-25 (859a0ed) | 2026-10-25 | Audit fixes, real data only on the server, security hardening, Knowledge, bot map, PDF reader, anatomy clean-up |
 | | | |

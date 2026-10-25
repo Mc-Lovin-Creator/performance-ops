@@ -29,6 +29,7 @@ from core.store import Conflict, MemoryStore, Store
 from core import totp
 from core.wear_routes import make_routes as wear_routes
 from core.scout import Scout, LANES as SCOUT_LANES, feeds_from_env
+from core.drops import Drops, DOMAINS as DROP_DOMAINS
 
 log = logging.getLogger("plos")
 MAX_VALUE_BYTES = 2_000_000
@@ -432,10 +433,28 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         await audit(who, "innovation scan", "scout", f"{r['added']} new of {r['found']} found, {r['lanes']} lanes, {len(r['errors'])} errors", req=req)
         return JSONResponse(r)
 
+    drops = Drops(store, http)
+
+    async def drops_run(req: Request):
+        """Tech Drops: daily brief or weekly roundup. Scheduler (x-cron-key = SCOUT_CRON_KEY) or the lead. See core/drops.py."""
+        mode = "weekly" if req.query_params.get("mode") == "weekly" else "daily"
+        ck = os.environ.get("SCOUT_CRON_KEY", "")
+        if len(ck) >= 32 and hmac.compare_digest(ck, req.headers.get("x-cron-key", "")):
+            who = None
+        else:
+            who = await current_user(req)
+            if not who:
+                return err(401, "sign in required")
+            if who.role != "lead":
+                return err(403, "lead only")
+        r = await drops.run(mode)
+        await audit(who, "tech drops " + mode, "drops", f"{r['added']} new of {r['found']} found, {r['domains']} domains, {len(r['errors'])} errors", req=req)
+        return JSONResponse(r)
+
     @needs_user
     async def scout_status(req, user: User):
         return JSONResponse({"grok": bool(os.environ.get("XAI_API_KEY")), "model": os.environ.get("XAI_MODEL", "grok-4.7"),
-                             "feeds": len(feeds_from_env()), "lanes": SCOUT_LANES, "scheduled": len(os.environ.get("SCOUT_CRON_KEY", "")) >= 32})
+                             "feeds": len(feeds_from_env()), "lanes": SCOUT_LANES, "drop_domains": list(DROP_DOMAINS), "scheduled": len(os.environ.get("SCOUT_CRON_KEY", "")) >= 32})
 
     @needs_user
     async def audit_log(req, user: User):
@@ -461,6 +480,7 @@ def create_app(store: Store, keys: Keys, cors_origins: list[str] | None = None, 
         Route("/api/audit", audit_log),
         Route("/api/scout/run", scout_run, methods=["POST"]),
         Route("/api/scout/status", scout_status),
+        Route("/api/drops/run", drops_run, methods=["POST"]),
     ] + wear_routes(store, keys, http, current_user, require_2fa_p1)
     mw = [Middleware(CORSMiddleware, allow_origins=cors_origins or [], allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["authorization", "content-type"])]
     mw.append(Middleware(SecurityHeaders))

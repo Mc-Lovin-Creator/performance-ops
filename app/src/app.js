@@ -271,6 +271,7 @@ const NAV = [
   ['§', 'Labs'],
   ['recovery', 'Recovery and track', '<path d="M12 21c-4-3-7-6-7-10a7 7 0 0 1 14 0c0 4-3 7-7 10z"/><path d="M9 11h6"/>'],
   ['build', 'Build status', '<path d="M4 6h16M4 12h10M4 18h7"/><path d="m15 17 2 2 4-4"/>'],
+  ['drops', 'Tech drops', '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>'],
   ['kb', 'Knowledge', '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h7M8 11h5"/>'],
   ['agents', 'Agents', '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M3 13v2M21 13v2"/>'],
   ['innovation', 'Innovation', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>']
@@ -279,9 +280,9 @@ const P1_ROUTES = ['player1', 'calendar', 'return', 'loadlab', 'p1tx', 'p1rec', 
 function allowedRoutes() {
   const r = me().role;
   if (r === 'athlete') return ['command', 'myfoot', 'book', 'anatomy', 'learn', 'ask', 'messages'];
-  if (r === 'coach') return ['command', 'recovery', 'members', 'book', 'athletes', 'anatomy', 'classify', 'learn', 'ask', 'messages', 'innovation', 'kb'];
-  if (r === 'physician') return [...P1_ROUTES, 'command', 'members', 'book', 'athletes', 'calendar', 'treatment', 'records', 'assess', 'classify', 'anatomy', 'learn', 'ask', 'messages', 'agents', 'innovation', 'kb'];
-  if (r === 'manager') return ['command', 'recovery', 'members', 'book', 'athletes', 'classify', 'learn', 'ask', 'messages', 'agents', 'innovation', 'kb', 'trust', 'build', 'audit', 'pilot'];
+  if (r === 'coach') return ['command', 'recovery', 'members', 'book', 'athletes', 'anatomy', 'classify', 'learn', 'ask', 'messages', 'innovation', 'kb', 'drops'];
+  if (r === 'physician') return [...P1_ROUTES, 'command', 'members', 'book', 'athletes', 'calendar', 'treatment', 'records', 'assess', 'classify', 'anatomy', 'learn', 'ask', 'messages', 'agents', 'innovation', 'kb', 'drops'];
+  if (r === 'manager') return ['command', 'recovery', 'members', 'book', 'athletes', 'classify', 'learn', 'ask', 'messages', 'agents', 'innovation', 'kb', 'drops', 'trust', 'build', 'audit', 'pilot'];
   return [...NAV.filter(n => n[0] !== '§').map(n => n[0]), 'assess'];
 }
 const NAVP = { assess: 'treatment' };
@@ -1023,7 +1024,7 @@ function renderNow() {
   const page = $('#page');
   page.innerHTML = (S.priv ? `<div class="banner">${lockIcon} Private mode is on. ${ATH.filter(a => a.private).length} private records and ${CHANNELS.filter(c => c.private).length} private threads are limited to their access lists.</div>` : '') + (
     r === 'command' ? pageCommand() : r === 'player1' ? pagePlayer1() : r === 'return' ? pageReturn() + (perm().clinical ? transitionCard() : '') : r === 'loadlab' ? pageLoadLab() + wearPanel() : r === 'calendar' ? pageCalendar() + leaveRequests() : r === 'assess' ? pageAssess() : r === 'p1tx' ? pageP1Tx() : r === 'p1inj' ? pageP1Inj() : r === 'p1test' ? pageP1Test() : r === 'p1edu' ? pageP1Edu() : r === 'p1chat' ? pageP1Chat() : r === 'myfoot' ? pageMyFoot() : r === 'learn' && me().role === 'athlete' ? pageLearnAthlete() : r === 'athletes' ? pageTeam() : r.startsWith('athlete-') ? athleteHub(r.slice(8)) : r === 'treatment' ? pageTreatment() : r === 'anatomy' || r === 'p1anat' ? pageAnatomy() :
-      r === 'book' ? pageBook() : r === 'classify' ? pageClassify() : r === 'learn' ? pageLearn() : r === 'messages' ? pageMessages() : r === 'innovation' ? innovationInbox() + pageInnovation() + equipmentPanel() : r === 'kb' ? pageKB() : r === 'agents' ? pageAgents() : r === 'p1rx' ? pageP1Rx() : r === 'p1kit' ? pageP1Kit() : r === 'recovery' ? pageRecovery() : r === 'build' ? pageBuild() : r === 'pilot' ? pagePilot() : r === 'audit' ? pageAudit() : r === 'members' ? pageMembers() : r === 'records' ? pageRecords('all') : r === 'p1rec' ? pageRecords('p1') + consentCard(P1()) : r === 'ask' ? pageAsk() : pageTrust());
+      r === 'book' ? pageBook() : r === 'classify' ? pageClassify() : r === 'learn' ? pageLearn() : r === 'messages' ? pageMessages() : r === 'innovation' ? innovationInbox() + pageInnovation() + equipmentPanel() : r === 'kb' ? pageKB() : r === 'drops' ? pageDrops() : r === 'agents' ? pageAgents() : r === 'p1rx' ? pageP1Rx() : r === 'p1kit' ? pageP1Kit() : r === 'recovery' ? pageRecovery() : r === 'build' ? pageBuild() : r === 'pilot' ? pagePilot() : r === 'audit' ? pageAudit() : r === 'members' ? pageMembers() : r === 'records' ? pageRecords('all') : r === 'p1rec' ? pageRecords('p1') + consentCard(P1()) : r === 'ask' ? pageAsk() : pageTrust());
   renderNav(); syncMode(); document.body.dataset.role = me().role;
   if (r === 'anatomy' || r === 'p1anat') mountAnatomy();
   cineAfterRender(); chapterSlate(r); holoMount(); if (window.AnatomyLab && AnatomyLab.roles && !document.getElementById('mo-host') && !(typeof OC !== 'undefined' && OC.keys && OC.roles)) AnatomyLab.roles(null);

@@ -20,7 +20,7 @@ const srv = createServer((q, r) => {
   r.writeHead(404); r.end();
 }).listen(PORT);
 const ROUTES = ['player1', 'calendar', 'return', 'loadlab', 'p1tx', 'p1rec', 'p1inj', 'p1test', 'p1rx', 'p1edu', 'p1kit', 'p1chat', 'command', 'athletes',
-  'treatment', 'records', 'classify', 'learn', 'messages', 'recovery', 'agents', 'innovation', 'trust', 'audit', 'members', 'book', 'pilot', 'kb'];
+  'treatment', 'records', 'classify', 'learn', 'messages', 'recovery', 'agents', 'innovation', 'trust', 'audit', 'members', 'book', 'pilot', 'kb', 'drops'];
 // strings that only exist in the demo content
 const DEMO = ['Lina S.', 'Omar K.', 'Karim M.', 'Noor A.', 'HRV 18%', 'Court 2 booked', 'tested 2026-10-16', 'Scan: mild spring ligament sprain', 'Force plate testing as a paid service', 'Summer vacation', 'higher-mild'];
 let fail = 0; const check = (c, m) => { console.log(c ? 'ok  ' : 'FAIL', m); if (!c) fail++; };

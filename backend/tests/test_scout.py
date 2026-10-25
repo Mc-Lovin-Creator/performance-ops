@@ -85,3 +85,30 @@ class Run(unittest.TestCase):
         http = FakeHttp()
         r = asyncio.run(S.Scout(MemoryStore(), http).run())
         self.assertEqual((http.posts, r["added"]), ([], 0))
+
+
+class DropsRun(unittest.TestCase):
+    def test_drops_daily_and_weekly(self):
+        from core import drops as D
+        body = {"output": [{"type": "message", "content": [{"type": "output_text", "text": json.dumps({"summary": "Two recovery launches.", "items": [
+            {"product": "Hyperboot X", "brand": "Hyperice", "what": "Heated compression boots.", "claims": "Brand says faster recovery.", "why": "Post-padel recovery.", "kind": "collab", "url": "https://hyperice.com/x", "date": "2026-10-24"},
+            {"product": "Made up", "url": "https://invented.example/p"}]}), "annotations": [{"type": "url_citation", "url": "https://hyperice.com/x"}]}]}]}
+
+        class H(FakeHttp):
+            async def post(self, url, json=None, headers=None, timeout=None):
+                self.posts.append(json)
+                return FakeResp(200, body)
+        os.environ["XAI_API_KEY"] = "k"
+        try:
+            store, http = MemoryStore(), H()
+            r = asyncio.run(D.Drops(store, http).run("daily"))
+            self.assertEqual((r["added"], len(http.posts)), (1, len(D.DOMAINS)))
+            self.assertIn("last 2 days", http.posts[0]["input"])
+            asyncio.run(D.Drops(store, http).run("weekly"))
+            self.assertIn("last 7 days", http.posts[-1]["input"])
+            b = asyncio.run(store.get_state("shared", "dropsbrief"))["value"]
+            self.assertEqual(sorted(b), ["daily", "weekly"])
+            item = list(asyncio.run(store.get_state("shared", "drops"))["value"].values())[0]
+            self.assertEqual((item["product"], item["kind"]), ("Hyperboot X", "collab"))
+        finally:
+            os.environ.pop("XAI_API_KEY", None)

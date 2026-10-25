@@ -1,4 +1,4 @@
-# Stage 4b: Innovation scout with Grok (optional, any time after stage 1)
+# Stage 4b: Innovation scout and Tech drops with Grok (optional, any time after stage 1)
 
 **Goal:** every morning the Innovation inbox fills with the week's research, product launches and drops, with a short summary for each domain (longevity, recovery and rehab, wearables, padel and the rest). It uses public sources only.
 
@@ -33,6 +33,14 @@ reading the key from the environment at run time, never writing it into code or 
 scheduler, say so and stop. Change no app files.
 ```
 
+   Then add two more scheduled jobs the same way, for **Tech drops**:
+   - Daily at 02:00 UTC (06:00 Abu Dhabi): `POST <PUBLIC_API_URL>/api/drops/run?mode=daily`
+   - Sundays at 02:30 UTC (06:30 Abu Dhabi): `POST <PUBLIC_API_URL>/api/drops/run?mode=weekly`
+
+   Both use the same `x-cron-key` header.
+   - **What it does:** each run covers 10 domains (wearables, recovery, sleep, training, footwear and apparel, rehab devices, nutrition and metabolic, mind and neurotech, diagnostics and longevity, racket and padel).
+   - **Where it looks:** X, plus the public, indexed posts on Instagram, TikTok, YouTube, LinkedIn, Reddit and Threads, plus brand newsrooms, press, Product Hunt and Kickstarter.
+   - **What it never does:** log into or scrape any account.
 5. **Run it once** from the app: open **Innovation**, then **Run the scan now** (this button is for the lead only). It takes a few minutes.
 
 ## Check

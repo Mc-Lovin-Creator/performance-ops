@@ -67,3 +67,4 @@ git tag release-$(date +%F) && git push origin --tags
 - The return plan's start date and today's symptom check-in now sync (they were refused by the server before).
 - Removed: chapter title cards, confetti, streak and mission rewards, holographic morph, hologram look, assemble/deconstruct. "Activation heat" is now "length change (not EMG)", and the lab states the model's limits.
 - New: Knowledge, the team's second brain (staff only, encrypted, refuses patient identifiers), and "Where every bot is" on the Agents page.
+- New: Tech drops. New health, wellness and performance tech in 10 domains with a daily brief and a weekly roundup. It searches X and public posts on Instagram, TikTok, YouTube, LinkedIn, Reddit and Threads, plus brand newsrooms and press. Only cited links are kept, and product claims are labelled as brand claims. It runs on the server once XAI_API_KEY is set.
