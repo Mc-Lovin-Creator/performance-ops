@@ -135,6 +135,8 @@ const SYNC = (() => {
   }
   function init() {
     if (!S2.on) return;
+    /* older versions kept a copy in localStorage: remove it, the team server keeps data for the open tab only */
+    try { Object.keys(localStorage).filter(k => k.indexOf('plos') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) { }
     if (!S2.token) { store.set = () => { }; clearLocal(); setTimeout(clearLocal, 0); document.documentElement.classList.add('locked'); let idle = false; try { idle = sessionStorage.getItem('plos.idle') === '1'; sessionStorage.removeItem('plos.idle'); } catch (e) { } return loginOverlay(idle ? 'Signed out after 15 minutes without activity.' : ''); }
     const orig = store.set; store.set = (k, v) => { orig(k, v); if (k !== 'me') push(k); };
     /* Player 1 clinicians: sign out after 15 minutes without activity, so an unattended screen does not stay open on his record */
